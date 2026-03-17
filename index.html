@@ -580,6 +580,29 @@
       if (result.warnings && result.warnings.length > 0) {
         showStatus('info', '⚠️ ' + result.warnings.join(' '));
       }
+
+      // Check if data already exists for this date
+      checkForDuplicate(result.date);
+    }
+
+    // ── Duplicate check ────────────────────────────────────────────
+    async function checkForDuplicate(date) {
+      const url = document.getElementById('sheetUrl').value.trim();
+      if (!url) return;
+
+      try {
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.ok && result.dates && result.dates.includes(date)) {
+          showStatus('info', `ℹ️ A snapshot for ${date} already exists in your sheet. Tick "Overwrite" if you want to replace it.`);
+          document.getElementById('overwrite').closest('.overwrite-row').style.border = '1px solid var(--amber)';
+          document.getElementById('overwrite').closest('.overwrite-row').style.borderRadius = '6px';
+          document.getElementById('overwrite').closest('.overwrite-row').style.padding = '0.5rem';
+        }
+      } catch (e) {
+        // Silently fail — not critical
+      }
     }
 
     // ── Save to Sheet ───────────────────────────────────────────────
