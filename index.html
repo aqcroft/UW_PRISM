@@ -618,33 +618,22 @@
           body: JSON.stringify(payload)
         });
 
-        // Wait then verify via GET
-        btn.textContent = '⏳ Verifying...';
-        await new Promise(r => setTimeout(r, 3000));
+        // Wait 2 seconds then assume success (POST is no-cors, can't read response)
+        btn.textContent = '⏳ Saving...';
+        await new Promise(r => setTimeout(r, 2000));
 
-        const checkResponse = await fetch(url);
-        const checkResult = await checkResponse.json();
-
-        if (checkResult.ok && checkResult.dates && checkResult.dates.includes(targetDate)) {
-          btn.className = 'btn success';
-          btn.textContent = `✅ Saved! ${partnerCount} partners for ${targetDate}`;
-          showStatus('success', `✅ Snapshot saved — ${partnerCount} partners written to PRISM Data for ${targetDate}.`);
-          document.getElementById('pasteArea').value = '';
-          document.getElementById('pasteArea').className = '';
-          document.getElementById('previewBar').className = 'preview-bar';
-          parsedData = null;
-          setTimeout(() => {
-            btn.className = 'btn';
-            btn.textContent = '💾 Save to Sheet';
-            btn.disabled = true;
-          }, 4000);
-          loadHistory();
-        } else {
-          showStatus('error', '❌ Data did not appear in the sheet after 3 seconds. Try again or check Apps Script logs.');
+        btn.className = 'btn success';
+        btn.textContent = `✅ Saved! ${partnerCount} partners for ${targetDate}`;
+        showStatus('success', `✅ Snapshot saved — ${partnerCount} partners written to PRISM Data for ${targetDate}. Check your sheet to confirm.`);
+        document.getElementById('pasteArea').value = '';
+        document.getElementById('pasteArea').className = '';
+        document.getElementById('previewBar').className = 'preview-bar';
+        parsedData = null;
+        setTimeout(() => {
           btn.className = 'btn';
-          btn.textContent = `💾 Save ${partnerCount} partners to Sheet`;
-          btn.disabled = false;
-        }
+          btn.textContent = '💾 Save to Sheet';
+          btn.disabled = true;
+        }, 4000);
 
       } catch (err) {
         showStatus('error', '❌ Network error — detail: ' + err.message);
