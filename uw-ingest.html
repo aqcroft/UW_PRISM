@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UW Structure Hub — Daily Import</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    :root {
+      --bg: #0a0e27;
+      --surface: #1a1f3a;
+      --border: #2a3051;
+      --text: #e8eaf6;
+      --text-dim: #8b8fa8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #fbbf24;
+      --blue: #3b82f6;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .logo {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .step {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      font-size: 0.875rem;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text strong {
+      font-weight: 600;
+    }
+
+    .step-text .note {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+
+    /* Config */
+    .config-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .config-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+      min-width: 100px;
+    }
+
+    input[type="text"], input[type="url"] {
+      flex: 1;
+      padding: 0.625rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    /* Paste area */
+    textarea {
+      width: 100%;
+      height: 280px;
+      padding: 1rem;
+      background: var(--bg);
+      border: 2px dashed var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 0.75rem;
+      resize: vertical;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--blue);
+      border-style: solid;
+    }
+
+    textarea.has-data {
+      border-color: var(--green);
+      border-style: solid;
+    }
+
+    textarea.has-error {
+      border-color: var(--red);
+      border-style: solid;
+    }
+
+    /* Preview bar */
+    .preview-bar {
+      display: none;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .preview-bar.show { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+
+    .preview-stat { display: flex; flex-direction: column; gap: 0.1rem; }
+    .preview-stat-val { font-weight: 700; font-size: 1.1rem; }
+    .preview-stat-val.ok { color: var(--green); }
+    .preview-stat-val.warn { color: var(--amber); }
+    .preview-stat-val.err { color: var(--red); }
+    .preview-stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+
+    /* Overwrite toggle */
+    .overwrite-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
+
+    /* Button */
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      background: linear-gradient(135deg, var(--blue), #2563eb);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: all 0.2s;
+      letter-spacing: 0.01em;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn.success {
+      background: linear-gradient(135deg, var(--green), #16a34a);
+    }
+
+    .btn.loading {
+      background: linear-gradient(135deg, #4b5563, #374151);
+    }
+
+    /* Status */
+    .status {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .status.success {
+      display: block;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid var(--green);
+      color: var(--green);
+    }
+
+    .status.error {
+      display: block;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid var(--red);
+      color: var(--red);
+    }
+
+    .status.info {
+      display: block;
+      background: rgba(59,130,246,0.1);
+      border: 1px solid var(--blue);
+      color: var(--blue);
+    }
+
+    /* History */
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+
+    .history-item:last-child { border-bottom: none; }
+    .history-date { font-weight: 600; }
+    .history-count { color: var(--text-dim); font-size: 0.8rem; }
+
+    /* Config save note */
+    .save-note {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 0.5rem;
+    }
+
+    a { color: var(--blue); }
+
+    @media (max-width: 480px) {
+      .config-row { flex-direction: column; align-items: flex-start; }
+      .config-label { min-width: auto; }
+      input[type="text"], input[type="url"] { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <div class="logo">📊</div>
+      <h1>UW Structure Hub</h1>
+      <div class="subtitle">Daily data import — takes about 60 seconds</div>
+    </div>
+
+    <!-- Config card -->
+    <div class="card">
+      <div class="card-title">⚙️ Setup (one time only)</div>
+      <div class="config-row">
+        <div class="config-label">Sheet URL</div>
+        <input type="url" id="sheetUrl" placeholder="Paste your Apps Script web app URL here" oninput="saveConfig()">
+      </div>
+      <div class="save-note">Your URL is saved in this browser — you won't need to enter it again.</div>
+    </div>
+
+    <!-- Instructions card -->
+    <div class="card">
+      <div class="card-title">📋 Today's import</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <strong>Open the UW portal team structure page</strong>
+            <span class="note"><a href="https://uw.co.uk/partner/portal/team" target="_blank">uw.co.uk/partner/portal/team ↗</a></span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <strong>Scroll all the way to the bottom of the page</strong>
+            <span class="note">Wait for all rows to load — check the footer shows all partners, e.g. "Results: 164 partners (showing 1 - 164)"</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <strong>Select all (Ctrl+A or Cmd+A) then copy</strong>
+            <span class="note">Make sure the "Data from: DD Mon YYYY" line at the bottom is included</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">
+            <strong>Paste below and click Save to Sheet</strong>
+          </div>
+        </div>
+      </div>
+
+      <textarea
+        id="pasteArea"
+        placeholder="Paste your copied portal data here..."
+        oninput="handlePaste()"
+      ></textarea>
+
+      <div class="preview-bar" id="previewBar">
+        <div class="preview-stat">
+          <div class="preview-stat-val ok" id="prevDate">—</div>
+          <div class="preview-stat-label">Data date</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-val ok" id="prevPartners">—</div>
+          <div class="preview-stat-label">Partners found</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-val ok" id="prevActive">—</div>
+          <div class="preview-stat-label">Active</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-val" id="prevClosed">—</div>
+          <div class="preview-stat-label">Closed</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-val" id="prevFooter">—</div>
+          <div class="preview-stat-label">Footer check</div>
+        </div>
+      </div>
+
+      <div class="overwrite-row">
+        <input type="checkbox" id="overwrite">
+        <label for="overwrite">Overwrite if data already exists for this date</label>
+      </div>
+
+      <button class="btn" id="saveBtn" onclick="saveToSheet()" disabled>
+        💾 Save to Sheet
+      </button>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <!-- History card -->
+    <div class="card" id="historyCard" style="display:none">
+      <div class="card-title">📅 Snapshots in your sheet</div>
+      <div id="historyList"></div>
+    </div>
+
+  </div>
+
+  <script>
+    let parsedData = null;
+
+    // ── Config persistence ──────────────────────────────────────────
+    function saveConfig() {
+      const url = document.getElementById('sheetUrl').value.trim();
+      if (url) localStorage.setItem('uw_sheet_url', url);
+      if (url) loadHistory();
+    }
+
+    function loadConfig() {
+      const url = localStorage.getItem('uw_sheet_url');
+      if (url) {
+        document.getElementById('sheetUrl').value = url;
+        loadHistory();
+      }
+    }
+
+    // ── Parser (matches your data format exactly) ───────────────────
+    function parsePortalData(text) {
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+      const partners = [];
+      const errors = [];
+
+      // Find header row
+      let startIndex = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('Name') && lines[i].includes('Personal') && lines[i].includes('Group Customers')) {
+          startIndex = i + 1;
+          break;
+        }
+      }
+
+      if (startIndex === -1) {
+        return { ok: false, error: 'Could not find data table header. Make sure you copied from the top of the page.' };
+      }
+
+      // Find footer and extract date
+      const lastBlock = lines.slice(-6).join('\n');
+      if (!lastBlock.includes('Data from:')) {
+        return { ok: false, error: 'Missing "Data from:" footer. Scroll to the very bottom of the portal page and try again.' };
+      }
+
+      const dateMatch = lastBlock.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+      if (!dateMatch) {
+        return { ok: false, error: 'Could not parse date from "Data from:" footer. Expected format: "17 Mar 2026".' };
+      }
+
+      const monthMap = {
+        Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+        Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'
+      };
+      const [_, day, month, year] = dateMatch;
+      const mon = monthMap[month.substring(0,3)];
+      if (!mon) return { ok: false, error: `Unrecognised month: "${month}"` };
+      const date = `${year}-${mon}-${day.padStart(2,'0')}`;
+
+      // Check footer partner count claim
+      const countMatch = lastBlock.match(/Results:\s*(\d+)\s*partners/);
+      const claimedCount = countMatch ? parseInt(countMatch[1]) : null;
+
+      // Parse rows: level line followed by data line
+      const parseNum = str => parseInt((str || '').replace(/,/g, '')) || 0;
+
+      for (let i = startIndex; i < lines.length - 1; i++) {
+        const line = lines[i];
+
+        // Is this a level number? (single integer, possibly tab-prefixed)
+        const levelMatch = line.match(/^(\d+)$/);
+        if (!levelMatch) continue;
+
+        const level = parseInt(levelMatch[1]);
+        const dataLine = lines[i + 1];
+        if (!dataLine) continue;
+
+        const parts = dataLine.split('\t');
+        if (parts.length < 6) continue;
+
+        const rawName = parts[0].trim();
+        if (!rawName || rawName.includes('Results:') || rawName.includes('Data from:')) continue;
+
+        const closed = /\(closed\)/i.test(rawName);
+        const cleanName = rawName.replace(/\s*\(closed\)/gi, '').trim();
+
+        // Extract title from end of name string
+        const titleMatch = cleanName.match(/((?:NNL|NGL|SGL|GL|STL|TL|QD|D)(?:\s*\/\s*(?:NNL|NGL|SGL|GL|STL|TL|QD|D))*)$/i);
+        const title = titleMatch ? titleMatch[1].replace(/\s+/g, ' ').toUpperCase() : 'D';
+        const name = titleMatch ? cleanName.substring(0, titleMatch.index).trim() : cleanName;
+
+        if (!name) continue;
+
+        partners.push({
+          level,
+          name,
+          title,
+          closed,
+          pc: parseNum(parts[2]),
+          uwId: parseNum(parts[3]),
+          gc: parseNum(parts[4]),
+          services: parseNum(parts[5])
+        });
+
+        i++; // skip data line
+      }
+
+      if (partners.length === 0) {
+        return { ok: false, error: 'No partner rows found. Check the copied data includes the full table.' };
+      }
+
+      // Warn if count mismatch
+      const warnings = [];
+      if (claimedCount && Math.abs(partners.length - claimedCount) > 2) {
+        warnings.push(`Portal says ${claimedCount} partners but ${partners.length} parsed — you may have missed some rows when scrolling.`);
+      }
+
+      return { ok: true, date, partners, claimedCount, warnings };
+    }
+
+    // ── Paste handler ───────────────────────────────────────────────
+    function handlePaste() {
+      const text = document.getElementById('pasteArea').value;
+      const btn = document.getElementById('saveBtn');
+      const preview = document.getElementById('previewBar');
+      const status = document.getElementById('status');
+
+      status.className = 'status';
+      status.style.display = 'none';
+
+      if (!text.trim()) {
+        document.getElementById('pasteArea').className = '';
+        preview.className = 'preview-bar';
+        btn.disabled = true;
+        parsedData = null;
+        return;
+      }
+
+      const result = parsePortalData(text);
+      parsedData = result.ok ? result : null;
+
+      if (!result.ok) {
+        document.getElementById('pasteArea').className = 'has-error';
+        preview.className = 'preview-bar';
+        btn.disabled = true;
+        showStatus('error', '⚠️ ' + result.error);
+        return;
+      }
+
+      // Success — show preview
+      document.getElementById('pasteArea').className = 'has-data';
+
+      const active = result.partners.filter(p => !p.closed).length;
+      const closed = result.partners.filter(p => p.closed).length;
+      const footerOk = !result.claimedCount || Math.abs(result.partners.length - result.claimedCount) <= 2;
+
+      document.getElementById('prevDate').textContent = result.date;
+      document.getElementById('prevPartners').textContent = result.partners.length;
+      document.getElementById('prevActive').textContent = active;
+
+      const closedEl = document.getElementById('prevClosed');
+      closedEl.textContent = closed;
+      closedEl.className = 'preview-stat-val' + (closed > 0 ? ' warn' : ' ok');
+
+      const footerEl = document.getElementById('prevFooter');
+      footerEl.textContent = footerOk ? '✓ Good' : '⚠ Mismatch';
+      footerEl.className = 'preview-stat-val ' + (footerOk ? 'ok' : 'warn');
+
+      preview.className = 'preview-bar show';
+      btn.disabled = false;
+      btn.className = 'btn';
+      btn.textContent = `💾 Save ${result.partners.length} partners to Sheet`;
+
+      if (result.warnings && result.warnings.length > 0) {
+        showStatus('info', '⚠️ ' + result.warnings.join(' '));
+      }
+    }
+
+    // ── Save to Sheet ───────────────────────────────────────────────
+    async function saveToSheet() {
+      const url = document.getElementById('sheetUrl').value.trim();
+      if (!url) {
+        showStatus('error', 'Please enter your Apps Script web app URL first.');
+        return;
+      }
+
+      if (!parsedData || !parsedData.ok) {
+        showStatus('error', 'No valid data to save. Please check the paste area.');
+        return;
+      }
+
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      btn.className = 'btn loading';
+      btn.textContent = '⏳ Saving...';
+
+      try {
+        const payload = {
+          date: parsedData.date,
+          partners: parsedData.partners,
+          overwrite: document.getElementById('overwrite').checked
+        };
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+          btn.className = 'btn success';
+          btn.textContent = `✅ Saved! ${result.rowsWritten} rows for ${result.date}`;
+          showStatus('success', `✅ Snapshot saved — ${result.rowsWritten} partners written to your Google Sheet for ${result.date}.`);
+          document.getElementById('pasteArea').value = '';
+          document.getElementById('pasteArea').className = '';
+          document.getElementById('previewBar').className = 'preview-bar';
+          parsedData = null;
+          setTimeout(() => {
+            btn.className = 'btn';
+            btn.textContent = '💾 Save to Sheet';
+            btn.disabled = true;
+          }, 4000);
+          loadHistory();
+        } else {
+          if (result.error && result.error.includes('already exists') && result.existingCount) {
+            showStatus('info', `ℹ️ ${result.error} Tick "Overwrite" and try again if you want to replace it.`);
+          } else {
+            showStatus('error', '❌ ' + (result.error || 'Unknown error from sheet.'));
+          }
+          btn.className = 'btn';
+          btn.textContent = `💾 Save ${parsedData.partners.length} partners to Sheet`;
+          btn.disabled = false;
+        }
+
+      } catch (err) {
+        showStatus('error', '❌ Network error — check your Apps Script URL is correct and the web app is deployed. Detail: ' + err.message);
+        btn.className = 'btn';
+        btn.textContent = `💾 Save ${parsedData.partners.length} partners to Sheet`;
+        btn.disabled = false;
+      }
+    }
+
+    // ── History loader ──────────────────────────────────────────────
+    async function loadHistory() {
+      const url = document.getElementById('sheetUrl').value.trim();
+      if (!url) return;
+
+      try {
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.ok && result.dates && result.dates.length > 0) {
+          const card = document.getElementById('historyCard');
+          const list = document.getElementById('historyList');
+          card.style.display = 'block';
+
+          list.innerHTML = result.dates.slice(0, 10).map(d => `
+            <div class="history-item">
+              <span class="history-date">${d}</span>
+              <span class="history-count">snapshot saved</span>
+            </div>
+          `).join('');
+
+          if (result.dates.length > 10) {
+            list.innerHTML += `<div style="font-size:0.75rem;color:var(--text-dim);padding-top:0.5rem;">${result.dates.length - 10} more snapshots in your sheet</div>`;
+          }
+        }
+      } catch (e) {
+        // Silently fail — history is a nice-to-have
+      }
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────
+    function showStatus(type, msg) {
+      const el = document.getElementById('status');
+      el.className = 'status ' + type;
+      el.style.display = 'block';
+      el.textContent = msg;
+    }
+
+    // ── Init ────────────────────────────────────────────────────────
+    loadConfig();
+  </script>
+</body>
+</html>
