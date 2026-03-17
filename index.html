@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -606,10 +607,10 @@
           overwrite: document.getElementById('overwrite').checked
         };
 
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+        const response = await fetch(`${url}?data=${encodedPayload}`, {
+          method: 'GET',
+          redirect: 'follow'
         });
 
         const result = await response.json();
