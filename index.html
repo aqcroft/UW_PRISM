@@ -104,6 +104,29 @@
     .history-date { font-weight: 600; }
     .history-badge { font-size: 0.7rem; color: var(--text-dim); background: var(--bg); padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid var(--border); }
     a { color: var(--blue); }
+
+    .fetch-btn {
+      width: 100%; padding: 1rem;
+      background: linear-gradient(135deg, #7c3aed, #5b21b6);
+      border: none; color: white; border-radius: 8px;
+      font-weight: 700; font-size: 1rem; cursor: pointer;
+      transition: all 0.2s; margin-bottom: 1rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    }
+    .fetch-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,58,237,0.4); }
+    .fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .fetch-status {
+      font-size: 0.8rem; color: var(--text-dim);
+      text-align: center; margin-bottom: 0.75rem;
+      min-height: 1.2rem;
+    }
+    .divider {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 1rem; color: var(--text-dim); font-size: 0.75rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
     @media (max-width: 480px) { .config-row { flex-direction: column; align-items: flex-start; } input[type="url"] { width: 100%; } }
   </style>
 </head>
@@ -151,6 +174,12 @@
         <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Paste below</strong></div></div>
       </div>
 
+      <button class="fetch-btn" id="fetchBtn" onclick="fetchFromPortal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Fetch from Portal
+      </button>
+      <div class="fetch-status" id="fetchStatus"></div>
+      <div class="divider">or paste manually below</div>
       <textarea id="pasteArea" placeholder="Paste your copied portal data here..." oninput="handlePaste()"></textarea>
 
       <div class="preview-bar" id="previewBar">
@@ -179,6 +208,180 @@
   <script>
     let parsedData = null;
     let sheetDates = [];
+
+    // ── Portal fetch (Claude in Chrome) ────────────────────────────
+    // This function is called by the Fetch button.
+    // Claude in Chrome intercepts it and runs the portal automation.
+    // If the extension isn't active, it falls back to manual paste.
+    async function fetchFromPortal() {
+      const btn = document.getElementById('fetchBtn');
+      const status = document.getElementById('fetchStatus');
+
+      btn.disabled = true;
+      status.textContent = '⏳ Fetching from portal via Claude in Chrome...';
+
+      // Signal to Claude in Chrome — the extension monitors for this
+      window.__PRISM_FETCH_REQUESTED__ = true;
+      window.__PRISM_FETCH_CALLBACK__ = 'prismReceivePortalData';
+
+      // If Claude in Chrome doesn't respond within 15s, assume it's not active
+      setTimeout(() => {
+        if (btn.disabled && !parsedData) {
+          status.textContent = '⚠️ Claude in Chrome not responding — please paste data manually below.';
+          btn.disabled = false;
+          window.__PRISM_FETCH_REQUESTED__ = false;
+        }
+      }, 15000);
+    }
+
+    // ── Portal data parser (innerText format from Chrome fetch) ─────
+    function parsePortalInnerText(text) {
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+
+      // Extract date from header line
+      const headerLine = lines.find(l => l.includes('data from') && l.includes('showing'));
+      if (!headerLine) return { ok: false, error: 'Could not find date in portal header.' };
+
+      const dateMatch = headerLine.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+      if (!dateMatch) return { ok: false, error: 'Could not parse date from portal header.' };
+
+      const monthMap = { Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12' };
+      const [_, day, month, year] = dateMatch;
+      const mon = monthMap[month.substring(0,3)];
+      if (!mon) return { ok: false, error: 'Unrecognised month: ' + month };
+      const date = year + '-' + mon + '-' + day.padStart(2,'0');
+
+      // Extract claimed count
+      const countMatch = headerLine.match(/(\d+)\s+partners/);
+      const claimedCount = countMatch ? parseInt(countMatch[1]) : null;
+
+      // Find header row index
+      let startIndex = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('Name') && lines[i].includes('Personal') && lines[i].includes('Group Customers')) {
+          startIndex = i + 1;
+          break;
+        }
+      }
+      if (startIndex === -1) return { ok: false, error: 'Could not find data table header.' };
+
+      const parseNum = str => parseInt((str || '').replace(/,/g, '')) || 0;
+      const partners = [];
+      const TITLES = ['NNL','NGL','SGL','GL','STL','TL','QD','D'];
+
+      // Portal innerText format:
+      // Level number line
+      // [blank/icon line - skip]
+      // Name line (possibly with (Closed))
+      // Title line
+      // Tab-separated data line: 	 PC 	 IDs 	 GC 	 Services
+
+      let i = startIndex;
+      while (i < lines.length) {
+        const line = lines[i];
+
+        // Is this a level number?
+        if (/^\d+$/.test(line)) {
+          const level = parseInt(line);
+          let j = i + 1;
+
+          // Skip blank/icon lines
+          while (j < lines.length && (lines[j] === '' || lines[j] === '\t')) j++;
+
+          // Name line
+          if (j >= lines.length) break;
+          const rawName = lines[j]; j++;
+          if (!rawName || rawName.includes('Tree') || rawName.includes('List')) break;
+
+          const closed = /\(closed\)/i.test(rawName);
+          const cleanName = rawName.replace(/\s*\(closed\)/gi, '').replace(/\.\.\.$/, '').trim();
+
+          // Title line — should be one of known titles or a / combination
+          let title = 'D';
+          if (j < lines.length) {
+            const possibleTitle = lines[j].trim();
+            const isTitle = TITLES.some(t => possibleTitle.toUpperCase().includes(t));
+            if (isTitle) { title = possibleTitle.toUpperCase(); j++; }
+          }
+
+          // Data line — tab separated
+          if (j < lines.length) {
+            const dataLine = lines[j];
+            if (dataLine.includes('\t')) {
+              const parts = dataLine.split('\t').map(p => p.trim());
+              // Parts: ['', PC, IDs, GC, Services] or [PC, IDs, GC, Services]
+              const nums = parts.filter(p => p !== '');
+              if (nums.length >= 4 && cleanName) {
+                partners.push({
+                  level,
+                  name: cleanName,
+                  title: title.replace(/\s+/g, ' '),
+                  closed,
+                  pc: parseNum(nums[0]),
+                  uwId: parseNum(nums[1]),
+                  gc: parseNum(nums[2]),
+                  services: parseNum(nums[3])
+                });
+              }
+              j++;
+            }
+          }
+
+          i = j;
+          continue;
+        }
+        i++;
+      }
+
+      if (partners.length === 0) return { ok: false, error: 'No partners parsed from portal data.' };
+
+      const warnings = [];
+      if (claimedCount && Math.abs(partners.length - claimedCount) > 2) {
+        warnings.push('Portal says ' + claimedCount + ' partners but ' + partners.length + ' were parsed.');
+      }
+
+      return { ok: true, date, partners, claimedCount, warnings, source: 'portal-fetch' };
+    }
+
+    // ── Expose for Claude in Chrome to call ─────────────────────────
+    window.prismReceivePortalData = function(rawText) {
+      const status = document.getElementById('fetchStatus');
+      const btn = document.getElementById('fetchBtn');
+
+      const result = parsePortalInnerText(rawText);
+
+      if (!result.ok) {
+        status.textContent = '❌ ' + result.error;
+        btn.disabled = false;
+        return;
+      }
+
+      // Populate paste area for transparency — user can see what was fetched
+      document.getElementById('pasteArea').value = rawText;
+      parsedData = result;
+
+      // Show preview
+      const active = result.partners.filter(p => !p.closed).length;
+      const closed = result.partners.filter(p => p.closed).length;
+
+      document.getElementById('prevDate').textContent = result.date;
+      document.getElementById('prevPartners').textContent = result.partners.length;
+      document.getElementById('prevActive').textContent = active;
+
+      const closedEl = document.getElementById('prevClosed');
+      closedEl.textContent = closed;
+      closedEl.className = 'preview-stat-val' + (closed > 0 ? ' warn' : ' ok');
+
+      document.getElementById('prevFooter').textContent = '✓ Auto';
+      document.getElementById('prevFooter').className = 'preview-stat-val ok';
+      document.getElementById('previewBar').className = 'preview-bar show';
+      document.getElementById('pasteArea').className = 'has-data';
+
+      status.textContent = '✅ ' + result.partners.length + ' partners fetched for ' + result.date;
+      btn.disabled = false;
+
+      buildConfirmPanel(result);
+    };
 
     function saveConfig() {
       const url = document.getElementById('sheetUrl').value.trim();
