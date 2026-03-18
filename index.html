@@ -344,11 +344,18 @@
     }
 
     // ── Expose for Claude in Chrome to call ─────────────────────────
-    window.prismReceivePortalData = function(rawText) {
+    // Accepts either raw portal innerText (string) or pre-parsed object
+    window.prismReceivePortalData = function(input) {
       const status = document.getElementById('fetchStatus');
       const btn = document.getElementById('fetchBtn');
 
-      const result = parsePortalInnerText(rawText);
+      let result;
+      if (typeof input === 'string') {
+        result = parsePortalInnerText(input);
+      } else {
+        // Pre-parsed object from Claude in Chrome
+        result = { ok: true, source: 'portal-fetch', ...input };
+      }
 
       if (!result.ok) {
         status.textContent = '❌ ' + result.error;
@@ -356,11 +363,8 @@
         return;
       }
 
-      // Populate paste area for transparency — user can see what was fetched
-      document.getElementById('pasteArea').value = rawText;
       parsedData = result;
 
-      // Show preview
       const active = result.partners.filter(p => !p.closed).length;
       const closed = result.partners.filter(p => p.closed).length;
 
@@ -380,7 +384,7 @@
       status.textContent = '✅ ' + result.partners.length + ' partners fetched for ' + result.date;
       btn.disabled = false;
 
-      buildConfirmPanel(result);
+      ensureSheetDates().then(() => buildConfirmPanel(result));
     };
 
     function saveConfig() {
@@ -594,10 +598,38 @@
       await loadHistory();
     }
 
+    // ── Today lock ──────────────────────────────────────────────────
+    async function checkTodayAlreadyImported() {
+      const url = document.getElementById('sheetUrl').value.trim();
+      if (!url) return;
+
+      await loadHistory();
+
+      const today = new Date().toISOString().split('T')[0];
+      const btn = document.getElementById('fetchBtn');
+      const status = document.getElementById('fetchStatus');
+
+      if (sheetDates.includes(today)) {
+        btn.textContent = '✅ Already imported today (' + today + ')';
+        btn.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
+        btn.disabled = false; // still clickable to re-fetch if needed
+        btn.onclick = function() {
+          if (confirm('Data for ' + today + ' already exists in your sheet. Fetch again and overwrite?')) {
+            btn.textContent = 'Fetch from Portal';
+            btn.style.background = 'linear-gradient(135deg, #7c3aed, #5b21b6)';
+            btn.onclick = fetchFromPortal;
+            fetchFromPortal();
+          }
+        };
+        status.textContent = 'Tap to re-fetch and overwrite if needed.';
+      }
+    }
+
     function showStatus(type, msg) { const el = document.getElementById('status'); el.className = 'status ' + type; el.textContent = msg; }
     function hideStatus() { document.getElementById('status').className = 'status'; }
 
     loadConfig();
+    checkTodayAlreadyImported();
   </script>
 </body>
 </html>
