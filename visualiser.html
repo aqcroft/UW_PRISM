@@ -18,102 +18,96 @@
     .app { display:flex; height:100vh; }
 
     .sidebar {
-      width:320px; min-width:320px; background:var(--surface);
+      width:300px; min-width:300px; background:var(--surface);
       border-right:1px solid var(--border); display:flex; flex-direction:column;
       overflow-y:auto; transition:transform .3s; position:relative; z-index:50;
     }
-    .sidebar.hidden { transform:translateX(-100%); }
+    .sidebar.hidden { transform:translateX(-320px); margin-right:-300px; }
     .sb-toggle {
-      position:absolute; right:-40px; top:50%; transform:translateY(-50%);
-      width:40px; height:100px; background:var(--surface); border:1px solid var(--border);
-      border-left:none; border-radius:0 10px 10px 0; display:flex; align-items:center;
-      justify-content:center; cursor:pointer; font-size:1.2rem; z-index:51;
+      position:absolute; right:-36px; top:50%; transform:translateY(-50%);
+      width:36px; height:80px; background:var(--surface); border:1px solid var(--border);
+      border-left:none; border-radius:0 8px 8px 0; display:flex; align-items:center;
+      justify-content:center; cursor:pointer; font-size:1rem; z-index:51;
     }
-    .sb-header { padding:1.25rem; border-bottom:1px solid var(--border); }
-    .sb-title { font-size:1.1rem; font-weight:800; margin-bottom:.25rem; }
-    .sb-sub { font-size:.7rem; color:var(--dim); }
-    .status-badge { margin-top:.75rem; padding:.6rem .75rem; border-radius:8px; font-size:.75rem; font-weight:700; display:none; }
+    .sb-header { padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    .sb-title { font-size:1rem; font-weight:800; margin-bottom:.2rem; }
+    .sb-sub { font-size:.7rem; color:var(--dim); line-height:1.4; }
+    .status-badge { margin-top:.6rem; padding:.5rem .6rem; border-radius:7px; font-size:.72rem; font-weight:700; display:none; }
     .status-badge.out { background:rgba(239,68,68,.15); border:1px solid var(--red); color:var(--red); display:block; }
     .status-badge.ok { background:rgba(34,197,94,.15); border:1px solid var(--green); color:var(--green); display:block; }
 
-    .section { padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
-    .sec-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--dim); margin-bottom:.75rem; }
+    .section { padding:.9rem 1.25rem; border-bottom:1px solid var(--border); }
+    .sec-title { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--dim); margin-bottom:.6rem; }
 
-    .btn { width:100%; padding:.6rem; background:linear-gradient(135deg,var(--blue),#2563eb); border:none; color:#fff; border-radius:7px; font-weight:600; cursor:pointer; margin-bottom:.4rem; font-size:.8rem; transition:all .2s; }
+    .btn { width:100%; padding:.55rem; background:linear-gradient(135deg,var(--blue),#2563eb); border:none; color:#fff; border-radius:6px; font-weight:600; cursor:pointer; margin-bottom:.35rem; font-size:.78rem; transition:all .2s; }
     .btn:hover { transform:translateY(-1px); }
     .btn.sec { background:var(--bg); border:1px solid var(--border); color:var(--dim); }
     .btn.sec:hover { color:var(--text); }
 
-    .stat-row { display:flex; justify-content:space-between; align-items:center; padding:.5rem .6rem; background:var(--bg); border-radius:6px; margin-bottom:.35rem; font-size:.8rem; }
+    .stat-row { display:flex; justify-content:space-between; align-items:center; padding:.45rem .55rem; background:var(--bg); border-radius:5px; margin-bottom:.3rem; font-size:.78rem; }
     .stat-val { font-weight:700; }
     .stat-val.ok { color:var(--green); }
     .stat-val.bad { color:var(--red); }
 
     .tabs { display:flex; border-bottom:1px solid var(--border); }
-    .tab { flex:1; padding:.6rem; text-align:center; font-size:.7rem; font-weight:700; cursor:pointer; color:var(--dim); border-bottom:2px solid transparent; transition:all .2s; }
+    .tab { flex:1; padding:.55rem; text-align:center; font-size:.68rem; font-weight:700; cursor:pointer; color:var(--dim); border-bottom:2px solid transparent; transition:all .2s; }
     .tab.active { color:var(--blue); border-bottom-color:var(--blue); }
 
-    .panel { display:none; padding:.75rem 1.25rem; }
+    .panel { display:none; padding:.7rem 1.25rem; }
     .panel.active { display:block; }
 
-    .change-item { display:flex; justify-content:space-between; align-items:center; padding:.4rem .5rem; border-radius:5px; margin-bottom:.3rem; font-size:.75rem; cursor:pointer; }
+    .change-item { display:flex; justify-content:space-between; align-items:center; padding:.35rem .45rem; border-radius:5px; margin-bottom:.25rem; font-size:.73rem; cursor:pointer; }
     .change-item:hover { background:var(--bg); }
 
-    .option-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:.75rem; margin-bottom:.6rem; font-size:.75rem; }
+    .option-card { background:var(--bg); border:1px solid var(--border); border-radius:7px; padding:.65rem; margin-bottom:.5rem; font-size:.73rem; }
     .option-card.viable { border-color:var(--green); }
     .option-card.possible { border-color:var(--amber); }
-    .option-card.hard { border-color:var(--red); }
-    .option-title { font-weight:700; margin-bottom:.4rem; }
-    .option-row { display:flex; justify-content:space-between; margin-bottom:.2rem; color:var(--dim); }
+    .option-title { font-weight:700; margin-bottom:.35rem; }
+    .option-row { display:flex; justify-content:space-between; margin-bottom:.2rem; color:var(--dim); font-size:.7rem; }
     .option-row span:last-child { color:var(--text); }
 
-    .search-input { width:100%; padding:.5rem .6rem; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; font-size:.8rem; margin-bottom:.5rem; }
+    .search-input { width:100%; padding:.45rem .55rem; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:5px; font-size:.78rem; margin-bottom:.45rem; }
     .search-input:focus { outline:none; border-color:var(--blue); }
-    .search-result { padding:.4rem .5rem; border-radius:5px; cursor:pointer; font-size:.75rem; margin-bottom:.2rem; }
+    .search-result { padding:.35rem .45rem; border-radius:5px; cursor:pointer; font-size:.73rem; margin-bottom:.2rem; }
     .search-result:hover { background:var(--bg); }
 
-    select { width:100%; padding:.5rem; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; font-size:.8rem; margin-bottom:.5rem; }
+    select { width:100%; padding:.45rem; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:5px; font-size:.75rem; margin-bottom:.45rem; }
 
-    .canvas-wrap { flex:1; position:relative; overflow:hidden; }
+    .canvas-wrap { flex:1; position:relative; overflow:hidden; min-width:0; }
     canvas { cursor:grab; display:block; }
     canvas:active { cursor:grabbing; }
 
-    .breadcrumb { position:absolute; top:1rem; left:1rem; background:var(--surface); padding:.5rem 1rem; border-radius:8px; border:1px solid var(--border); font-size:.8rem; display:flex; align-items:center; gap:.4rem; z-index:10; max-width:60%; flex-wrap:wrap; }
+    .breadcrumb { position:absolute; top:.75rem; left:.75rem; background:var(--surface); padding:.4rem .8rem; border-radius:7px; border:1px solid var(--border); font-size:.75rem; display:flex; align-items:center; gap:.35rem; z-index:10; max-width:55%; flex-wrap:wrap; }
     .bc-item { color:var(--dim); cursor:pointer; }
     .bc-item:hover { color:var(--text); }
     .bc-item.active { color:var(--text); font-weight:700; }
 
-    .date-badge { position:absolute; top:1rem; right:1rem; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:.5rem .75rem; font-size:.75rem; z-index:10; }
+    .date-badge { position:absolute; top:.75rem; right:.75rem; background:var(--surface); border:1px solid var(--border); border-radius:7px; padding:.4rem .65rem; font-size:.72rem; z-index:10; }
 
-    .controls { position:absolute; bottom:1.5rem; right:1.5rem; display:flex; flex-direction:column; gap:.4rem; }
-    .ctrl-btn { width:40px; height:40px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; }
+    .controls { position:absolute; bottom:1.25rem; right:1.25rem; display:flex; flex-direction:column; gap:.35rem; }
+    .ctrl-btn { width:38px; height:38px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:7px; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; }
     .ctrl-btn:hover { border-color:var(--blue); color:var(--blue); }
 
-    .tooltip { position:absolute; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem; pointer-events:none; opacity:0; transition:opacity .15s; z-index:100; min-width:200px; max-width:260px; }
+    .tooltip { position:absolute; background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:.9rem; pointer-events:none; opacity:0; transition:opacity .15s; z-index:100; min-width:190px; max-width:250px; }
     .tooltip.show { opacity:1; }
-    .tt-name { font-weight:700; margin-bottom:.15rem; font-size:.9rem; }
-    .tt-level { font-size:.7rem; color:var(--dim); margin-bottom:.6rem; }
-    .tt-badge { display:inline-block; padding:.2rem .5rem; border-radius:4px; font-size:.72rem; font-weight:700; margin-bottom:.6rem; }
-    .tt-pigs { display:grid; grid-template-columns:repeat(4,1fr); gap:.4rem; }
+    .tt-name { font-weight:700; margin-bottom:.12rem; font-size:.88rem; }
+    .tt-level { font-size:.68rem; color:var(--dim); margin-bottom:.5rem; }
+    .tt-badge { display:inline-block; padding:.18rem .45rem; border-radius:4px; font-size:.7rem; font-weight:700; margin-bottom:.5rem; }
+    .tt-pigs { display:grid; grid-template-columns:repeat(4,1fr); gap:.35rem; }
     .tt-pig { text-align:center; }
-    .tt-pig-val { font-size:1.1rem; font-weight:800; }
-    .tt-pig-lbl { font-size:.6rem; color:var(--dim); text-transform:uppercase; }
+    .tt-pig-val { font-size:1rem; font-weight:800; }
+    .tt-pig-lbl { font-size:.58rem; color:var(--dim); text-transform:uppercase; }
 
     .empty-state { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; }
-    .empty-icon { font-size:4rem; margin-bottom:1rem; }
-    .empty-title { font-size:1.5rem; font-weight:700; margin-bottom:.5rem; }
-    .empty-sub { color:var(--dim); font-size:.875rem; margin-bottom:1.5rem; max-width:400px; }
+    .empty-icon { font-size:3.5rem; margin-bottom:.75rem; }
+    .empty-title { font-size:1.4rem; font-weight:700; margin-bottom:.4rem; }
+    .empty-sub { color:var(--dim); font-size:.85rem; margin-bottom:1.25rem; max-width:380px; line-height:1.5; }
 
-    .config-bar { background:var(--surface2); border-bottom:1px solid var(--border); padding:.75rem 1.25rem; display:flex; gap:.5rem; align-items:center; font-size:.8rem; }
-    .config-bar input { flex:1; padding:.4rem .6rem; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; font-size:.75rem; }
+    .config-bar { background:var(--surface2); border-bottom:1px solid var(--border); padding:.65rem 1.25rem; display:flex; gap:.45rem; align-items:center; }
+    .config-bar input { flex:1; padding:.38rem .55rem; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:5px; font-size:.72rem; min-width:0; }
     .config-bar input:focus { outline:none; border-color:var(--blue); }
-    .config-bar button { padding:.4rem .8rem; background:var(--blue); border:none; color:#fff; border-radius:6px; cursor:pointer; font-size:.75rem; font-weight:600; white-space:nowrap; }
-    .config-bar label { color:var(--dim); white-space:nowrap; font-size:.75rem; }
-
-    @media (max-width:768px) {
-      .sidebar { position:absolute; height:100vh; z-index:100; box-shadow:4px 0 12px rgba(0,0,0,.3); transform:translateX(-100%); }
-      .sidebar.visible { transform:translateX(0); }
-    }
+    .config-bar button { padding:.38rem .7rem; background:var(--blue); border:none; color:#fff; border-radius:5px; cursor:pointer; font-size:.72rem; font-weight:700; white-space:nowrap; }
+    .config-bar label { color:var(--dim); white-space:nowrap; font-size:.72rem; }
   </style>
 </head>
 <body>
@@ -126,7 +120,7 @@
       <div class="status-badge" id="statusBadge"></div>
     </div>
     <div class="config-bar">
-      <label>Sheet URL</label>
+      <label>URL</label>
       <input type="url" id="sheetUrl" placeholder="Apps Script URL" oninput="saveUrl()">
       <button onclick="loadFromSheet()">Load</button>
     </div>
@@ -145,19 +139,19 @@
       <div class="tab" onclick="switchTab('search')" id="tab-search">Search</div>
     </div>
     <div class="panel active" id="panel-changes">
-      <div style="margin-bottom:.75rem;display:flex;gap:.4rem;align-items:center;">
+      <div style="margin-bottom:.65rem;display:flex;gap:.35rem;align-items:center;">
         <select id="dateSelect1" onchange="applyComparison()" style="flex:1;margin:0;"></select>
-        <span style="color:var(--dim);font-size:.7rem;">vs</span>
+        <span style="color:var(--dim);font-size:.68rem;">vs</span>
         <select id="dateSelect2" onchange="applyComparison()" style="flex:1;margin:0;"></select>
       </div>
-      <div id="changesList" style="font-size:.75rem;max-height:calc(100vh - 420px);overflow-y:auto;"></div>
+      <div id="changesList" style="font-size:.73rem;max-height:calc(100vh - 430px);overflow-y:auto;"></div>
     </div>
     <div class="panel" id="panel-status">
-      <div id="statusPanel" style="max-height:calc(100vh - 360px);overflow-y:auto;"></div>
+      <div id="statusPanel" style="max-height:calc(100vh - 370px);overflow-y:auto;"></div>
     </div>
     <div class="panel" id="panel-search">
       <input class="search-input" type="text" placeholder="Search partner..." oninput="searchPartners(this.value)">
-      <div id="searchResults" style="max-height:calc(100vh - 380px);overflow-y:auto;"></div>
+      <div id="searchResults" style="max-height:calc(100vh - 390px);overflow-y:auto;"></div>
     </div>
   </div>
 
@@ -168,7 +162,7 @@
     <div class="empty-state" id="emptyState">
       <div class="empty-icon">🔷</div>
       <div class="empty-title">PRISM</div>
-      <div class="empty-sub">Paste your Apps Script URL in the sidebar and click Load to pull your structure data from Google Sheets.</div>
+      <div class="empty-sub">Paste your Apps Script URL in the sidebar and click Load to pull your structure from Google Sheets.</div>
     </div>
     <div class="controls">
       <button class="ctrl-btn" onclick="doZoom(1.2)">+</button>
@@ -204,34 +198,62 @@ function resize(){const w=document.getElementById('canvasWrap');canvas.width=w.c
 
 function saveUrl(){const u=document.getElementById('sheetUrl').value.trim();if(u)localStorage.setItem('prism_sheet_url',u);}
 
+function parseBool(v){
+  if(v===true||v===1)return true;
+  if(typeof v==='string'){const s=v.toUpperCase();return s==='TRUE'||s==='YES'||s==='1';}
+  return false;
+}
+
 async function loadFromSheet(){
   const url=document.getElementById('sheetUrl').value.trim();
   if(!url){alert('Please enter your Apps Script URL.');return;}
   saveUrl();
   document.getElementById('viewingLabel').textContent='⏳ Loading...';
   try{
-    // Try ?all=1 first
     const r=await fetch(url+'?all=1');
     const j=await r.json();
     if(j.ok&&j.data&&j.data.length){
+      // Determine the best available date field
+      const today=new Date().toISOString().split('T')[0];
+      const sample=j.data[0];
+      // Try to find date from various possible fields
+      const getDate=row=>{
+        const candidates=[row.date,row.snapshot_date,row.Date,row.imported_at];
+        for(const c of candidates){
+          if(!c||c==='null')continue;
+          // If it's a full datetime, take the date part
+          const s=String(c).trim().substring(0,10);
+          if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+        }
+        return null;
+      };
       allDates={};
       j.data.forEach(row=>{
-        const d=row.date;
-        if(!d)return;
+        const d=getDate(row)||today;
         if(!allDates[d])allDates[d]=[];
-        allDates[d].push({level:parseInt(row.partner_level)||1,name:row.partner_name||'',title:row.title||'D',closed:row.closed==='TRUE'||row.closed===true,pc:parseInt(row.personal_customers)||0,uwId:parseInt(row.partner_ids)||0,gc:parseInt(row.group_customers)||0,services:parseInt(row.group_services)||0});
+        allDates[d].push({
+          level:parseInt(row.partner_level)||1,
+          name:row.partner_name||'',
+          title:row.title||'D',
+          closed:parseBool(row.closed),
+          pc:parseInt(row.personal_customers)||0,
+          uwId:parseInt(row.partner_ids)||0,
+          gc:parseInt(row.group_customers)||0,
+          services:parseInt(row.group_services)||0
+        });
       });
       const dates=Object.keys(allDates).sort().reverse();
       populateDates(dates);
       useLatest();
       document.getElementById('emptyState').style.display='none';
     } else {
-      // Fallback — dates only
       const r2=await fetch(url);
       const j2=await r2.json();
-      if(j2.ok&&j2.dates){
+      if(j2.ok&&j2.dates&&j2.dates.length){
         populateDates(j2.dates);
-        document.getElementById('viewingLabel').textContent='⚠️ Update your Apps Script to see structure data. Dates loaded: '+j2.dates.length;
+        document.getElementById('viewingLabel').textContent='⚠️ Apps Script needs updating to show structure. '+j2.dates.length+' dates found.';
+      } else {
+        document.getElementById('viewingLabel').textContent='⚠️ No data found. Check your Apps Script URL.';
       }
     }
   }catch(e){document.getElementById('viewingLabel').textContent='❌ Load failed — check URL';console.error(e);}
@@ -419,7 +441,7 @@ function buildChanges(){
   let html='';
   const sec=(em,lbl,col,items,fn)=>{
     if(!items.length)return;
-    html+=`<div style="font-weight:700;color:${col};margin:.6rem 0 .3rem;font-size:.75rem">${em} ${lbl} (${items.length})</div>`;
+    html+=`<div style="font-weight:700;color:${col};margin:.55rem 0 .25rem;font-size:.73rem">${em} ${lbl} (${items.length})</div>`;
     html+=items.map(fn).join('');
   };
   sec('🔥','New','#22c55e',newP,p=>`<div class="change-item" onclick="navTo('${p.name}')">${sname(p)} <span style="color:var(--dim)">${p.title}</span></div>`);
@@ -440,12 +462,12 @@ function buildStatus(){
   const status=statusOnly(you).toUpperCase();
   const reqs=statusReqs(status);
   const curr=currMetrics(you);
-  let html=`<div style="font-size:.8rem;font-weight:700;margin-bottom:.75rem;color:var(--red)">⚠️ Title: <strong>${title}</strong> — Status: <strong>${status}</strong><div style="font-size:.7rem;font-weight:400;color:var(--dim);margin-top:.3rem">Qualifying for ${status} will restore your ${title} bonuses.</div></div>`;
-  html+=`<div style="font-size:.75rem;font-weight:700;margin-bottom:.4rem">${status} requirements:</div><div style="background:var(--bg);border-radius:6px;padding:.6rem;margin-bottom:.75rem;font-size:.75rem;">`;
-  reqs.forEach(r=>{const met=curr[r.key]>=r.value;html+=`<div style="display:flex;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--dim)">${r.label}</span><span style="color:${met?'#22c55e':'#ef4444'}">${curr[r.key]}/${r.value} ${met?'✓':''}</span></div>`;});
+  let html=`<div style="font-size:.78rem;font-weight:700;margin-bottom:.65rem;color:var(--red)">⚠️ Title: <strong>${title}</strong> — Status: <strong>${status}</strong><div style="font-size:.68rem;font-weight:400;color:var(--dim);margin-top:.25rem">Qualifying for ${status} restores your ${title} bonuses.</div></div>`;
+  html+=`<div style="font-size:.73rem;font-weight:700;margin-bottom:.35rem">${status} requirements:</div><div style="background:var(--bg);border-radius:5px;padding:.55rem;margin-bottom:.65rem;font-size:.73rem;">`;
+  reqs.forEach(r=>{const met=curr[r.key]>=r.value;html+=`<div style="display:flex;justify-content:space-between;padding:.2rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--dim)">${r.label}</span><span style="color:${met?'#22c55e':'#ef4444'}">${curr[r.key]}/${r.value} ${met?'✓':''}</span></div>`;});
   html+='</div>';
   const opts=buildRoutes(you,status,reqs,curr);
-  if(opts.length){html+=`<div style="font-size:.75rem;font-weight:700;margin-bottom:.5rem">🗺️ Routes back to status:</div>`;opts.forEach(o=>{html+=`<div class="option-card ${o.diff}"><div class="option-title">${o.title}</div>${o.rows.map(r=>`<div class="option-row"><span>${r.l}</span><span>${r.v}</span></div>`).join('')}${o.note?`<div style="margin-top:.4rem;color:var(--dim);font-size:.7rem">${o.note}</div>`:''}</div>`;});}
+  if(opts.length){html+=`<div style="font-size:.73rem;font-weight:700;margin-bottom:.45rem">🗺️ Routes back to status:</div>`;opts.forEach(o=>{html+=`<div class="option-card ${o.diff}"><div class="option-title">${o.title}</div>${o.rows.map(r=>`<div class="option-row"><span>${r.l}</span><span>${r.v}</span></div>`).join('')}${o.note?`<div style="margin-top:.35rem;color:var(--dim);font-size:.68rem">${o.note}</div>`:''}</div>`;});}
   panel.innerHTML=html;
 }
 
@@ -489,22 +511,15 @@ function searchPartners(q){
   const res=document.getElementById('searchResults');
   if(!currentData||!q.trim()){res.innerHTML='';return;}
   const m=currentData.partners.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).slice(0,12);
-  res.innerHTML=m.length?m.map(p=>`<div class="search-result" onclick="navTo('${p.name}')">${sname(p)} <span style="color:var(--dim);font-size:.7rem">${p.title} · ${p.pc}PC · ${p.gc}GC</span></div>`).join(''):'<div style="color:var(--dim);font-size:.75rem">No matches</div>';
+  res.innerHTML=m.length?m.map(p=>`<div class="search-result" onclick="navTo('${p.name}')">${sname(p)} <span style="color:var(--dim);font-size:.7rem">${p.title} · ${p.pc}PC · ${p.gc}GC</span></div>`).join(''):'<div style="color:var(--dim);font-size:.73rem">No matches</div>';
 }
 
 function navTo(name){if(!currentData)return;const p=currentData.partners.find(x=>x.name===name);if(p){viewStack=[p];render();}}
 function goBack(){if(viewStack.length>1){viewStack.pop();render();}}
 function goHome(){if(currentData){viewStack=[currentData.partners[0]];render();}}
 
-function mdown(e){
-  const {x,y}=wp(e);
-  isDrag=true;dx=e.clientX-ox;dy=e.clientY-oy;
-}
-function mdbl(e){
-  const {x,y}=wp(e);
-  const hit=nodes.find(n=>Math.hypot(x-n.x,y-n.y)<=n.r);
-  if(hit)navTo(hit.name);
-}
+function mdown(e){isDrag=true;dx=e.clientX-ox;dy=e.clientY-oy;}
+function mdbl(e){const {x,y}=wp(e);const hit=nodes.find(n=>Math.hypot(x-n.x,y-n.y)<=n.r);if(hit)navTo(hit.name);}
 function mmove(e){
   if(isDrag){ox=e.clientX-dx;oy=e.clientY-dy;draw();return;}
   const {x,y}=wp(e);
@@ -519,16 +534,15 @@ function resetView(){scale=1;ox=0;oy=0;draw();}
 function showTT(e,n){
   const tt=document.getElementById('tooltip');
   if(!n){tt.className='tooltip';return;}
-  const ids=cads(n);
-  const g=grw(n);
+  const ids=cads(n);const g=grw(n);
   let gh='';
-  if(g){if(g.isNew)gh='<div style="color:#22c55e;font-size:.7rem;margin-bottom:.4rem">🔥 NEW PARTNER</div>';else if(g.isHot)gh=`<div style="color:#22c55e;font-size:.7rem;margin-bottom:.4rem">🔥 ${g.pd>0?'+'+g.pd+'PC ':''} ${g.gd>0?'+'+g.gd+'GC ':''}</div>`;else if(g.isCold)gh=`<div style="color:#3b82f6;font-size:.7rem;margin-bottom:.4rem">❄️ ${g.pd<0?g.pd+'PC ':''} ${g.gd<0?g.gd+'GC ':''}</div>`;}
-  const oos=isOOS(n)?`<div style="color:#fbbf24;font-size:.7rem;margin-bottom:.4rem">⚠️ OOS: ${titleOnly(n)}→${statusOnly(n)}</div>`:""
+  if(g){if(g.isNew)gh='<div style="color:#22c55e;font-size:.7rem;margin-bottom:.35rem">🔥 NEW PARTNER</div>';else if(g.isHot)gh=`<div style="color:#22c55e;font-size:.7rem;margin-bottom:.35rem">🔥 ${g.pd>0?'+'+g.pd+'PC ':''} ${g.gd>0?'+'+g.gd+'GC ':''}</div>`;else if(g.isCold)gh=`<div style="color:#3b82f6;font-size:.7rem;margin-bottom:.35rem">❄️ ${g.pd<0?g.pd+'PC ':''} ${g.gd<0?g.gd+'GC ':''}</div>`;}
+  const oos=isOOS(n)?`<div style="color:#fbbf24;font-size:.7rem;margin-bottom:.35rem">⚠️ OOS: ${titleOnly(n)}→${statusOnly(n)}</div>`:""
   tt.innerHTML=`<div class="tt-name">${dname(n)}</div><div class="tt-level">Level ${n.level}</div>${gh}${oos}<div class="tt-badge" style="background:${ncol(n)}">${n.title}</div><div class="tt-pigs"><div class="tt-pig"><div class="tt-pig-val">${n.pc}</div><div class="tt-pig-lbl">PC</div></div><div class="tt-pig"><div class="tt-pig-val">${ids}</div><div class="tt-pig-lbl">IDs</div></div><div class="tt-pig"><div class="tt-pig-val">${n.gc}</div><div class="tt-pig-lbl">GC</div></div><div class="tt-pig"><div class="tt-pig-val">${n.services}</div><div class="tt-pig-lbl">Svcs</div></div></div>`;
   const r=canvas.getBoundingClientRect();
-  const tx=Math.min(e.clientX-r.left+16,canvas.width-270);
-  const ty=Math.min(e.clientY-r.top+16,canvas.height-180);
-  tt.style.left=tx+'px';tt.style.top=ty+'px';tt.className='tooltip show';
+  tt.style.left=Math.min(e.clientX-r.left+14,canvas.width-260)+'px';
+  tt.style.top=Math.min(e.clientY-r.top+14,canvas.height-175)+'px';
+  tt.className='tooltip show';
 }
 function hideTT(){document.getElementById('tooltip').className='tooltip';}
 
