@@ -452,6 +452,10 @@ function applyComparison(){
 // ══ VISIBILITY ══
 function shouldShow(p){
   if(hiddenSession.has(p.name)||hiddenPerm[p.name])return false;
+  const sc=document.getElementById('showClosed')?.checked??true;
+  const sl=document.getElementById('showLow')?.checked??true;
+  if(p.closed&&!sc)return false;
+  if(p.pc<=2&&p.gc<10&&!sl)return false;
   return true;
 }
 
@@ -729,30 +733,38 @@ function buildFeed(){
     const p=currentData.partners.find(x=>x.name===name);if(p)watched.push(p);
   });
 
-  // Build sections
-  html+=buildSection('🚨','Out of Status',oosPartners.length,'oos',
+  // Build sections dynamically — sections with content float up
+  const sections = [];
+
+  // Always-present structural alerts first
+  sections.push({order:oosPartners.length>0?0:100, html:buildSection('🚨','Out of Status',oosPartners.length,'oos',
     oosPartners.map(p=>{
       const reqs=REQS[titleOnly(p).toUpperCase()]||[];
       const curr=currMetrics(p);
       const gaps=reqs.filter(r=>curr[r.key]<r.v).length;
       return feedItem(p,`${titleOnly(p)} → ${statusOnly(p)}`,`${gaps} gap${gaps===1?'':'s'} to fix`,`color:var(--red)`);
-    }).join(''),oosPartners.length>0);
+    }).join(''),oosPartners.length>0)});
 
   if(compareData){
-    html+=buildSection('🚨','Became OOS',becameOOS.length,'becameoos',
-      becameOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--red)')).join(''));
-    html+=buildSection('✅','Back in Status',fixedOOS.length,'fixedoos',
-      fixedOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--green)')).join(''));
-    html+=buildSection('⭐','Promoted',promoted.length,'promoted',
-      promoted.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--amber)')).join(''));
-    html+=buildSection('🔥','New Partners',newP.length,'new',
-      newP.map(p=>feedItem(p,p.title,'','color:var(--green)')).join(''));
+    sections.push({order:becameOOS.length>0?1:101, html:buildSection('🚨','Became OOS',becameOOS.length,'becameoos',
+      becameOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--red)')).join(''))});
+    sections.push({order:fixedOOS.length>0?2:102, html:buildSection('✅','Back in Status',fixedOOS.length,'fixedoos',
+      fixedOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--green)')).join(''))});
+    sections.push({order:promoted.length>0?3:103, html:buildSection('⭐','Promoted',promoted.length,'promoted',
+      promoted.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--amber)')).join(''))});
+    // Growing and declining near top when they have data
+    sections.push({order:hot.length>0?4:104, html:buildSection('📈','Growing',hot.length,'hot',
+      hot.map(({p,g})=>feedItem(p,p.title,`${g.pd>0?'+'+g.pd+'PC ':''} ${g.gd>0?'+'+g.gd+'GC':''}`.trim(),'color:var(--green)')).join(''))});
+    sections.push({order:cold.length>0?5:105, html:buildSection('📉','Declining',cold.length,'cold',
+      cold.map(({p,g})=>feedItem(p,p.title,`${g.pd<0?g.pd+'PC ':''} ${g.gd<0?g.gd+'GC':''}`.trim(),'color:var(--red)')).join(''))});
+    sections.push({order:newP.length>0?6:106, html:buildSection('🔥','New Partners',newP.length,'new',
+      newP.map(p=>feedItem(p,p.title,'','color:var(--green)')).join(''))});
   }
 
-  html+=buildSection('🎯','Close to Promotion',nearProm.length,'nearprom',
-    nearProm.map(({p,target,summary})=>feedItem(p,'→ '+target,summary,'color:var(--cyan)')).join(''));
+  sections.push({order:nearProm.length>0?7:107, html:buildSection('🎯','Close to Promotion',nearProm.length,'nearprom',
+    nearProm.map(({p,target,summary})=>feedItem(p,'→ '+target,summary,'color:var(--cyan)')).join(''))});
 
-  html+=buildSection('⚠️','Demotion Risk',nearDem.length,'neardem',
+  sections.push({order:nearDem.length>0?8:108, html:buildSection('⚠️','Demotion Risk',nearDem.length,'neardem',
     nearDem.map(({p,rag,s})=>{
       const parts=[];
       if(rag.pcLevel)parts.push(`PC ${p.pc} ${rag.pcLevel==='red'?'🔴':'🟡'}`);
@@ -763,14 +775,10 @@ function buildFeed(){
       <label style="cursor:pointer;display:flex;align-items:center;gap:.3rem">
         <input type="checkbox" ${includeQDRisk?'checked':''} onchange="includeQDRisk=this.checked;buildFeed()"> Include QD risk alerts
       </label>
-    </div>`);
+    </div>`)});
 
-  if(compareData){
-    html+=buildSection('📈','Growing',hot.length,'hot',
-      hot.map(({p,g})=>feedItem(p,p.title,`${g.pd>0?'+'+g.pd+'PC ':''} ${g.gd>0?'+'+g.gd+'GC':''}`.trim(),'color:var(--green)')).join(''));
-    html+=buildSection('📉','Declining',cold.length,'cold',
-      cold.map(({p,g})=>feedItem(p,p.title,`${g.pd<0?g.pd+'PC ':''} ${g.gd<0?g.gd+'GC':''}`.trim(),'color:var(--red)')).join(''));
-  }
+  // Sort by order (sections with data float up) and render
+  sections.sort((a,b)=>a.order-b.order).forEach(s=>html+=s.html);
 
   // Watchlist section
   html+=buildSection('👁','Watchlist',watched.length,'watchlist',
