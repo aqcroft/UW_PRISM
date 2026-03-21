@@ -676,10 +676,10 @@ function titleCol(p){
 function grw(p){
   if(!compareData)return null;
   const prev=compareData.partners.find(x=>x.name===p.name);
-  if(!prev)return{isNew:true,isHot:false,isCold:false,newlyClosed:false,pd:0,gd:0};
-  const pd=p.pc-prev.pc,gd=p.gc-prev.gc;
+  if(!prev)return{isNew:true,isHot:false,isCold:false,newlyClosed:false,pd:0,gd:0,sd:0};
+  const pd=p.pc-prev.pc,gd=p.gc-prev.gc,sd=p.services-prev.services;
   // Only flag hot/cold for existing partners, not new ones
-  return{isNew:false,isHot:pd>=2||gd>=15,isCold:pd<=-2||gd<=-10,newlyClosed:!prev.closed&&p.closed,pd,gd};
+  return{isNew:false,isHot:pd>=2||gd>=15||sd>=3,isCold:pd<=-2||gd<=-10||sd<=-3,newlyClosed:!prev.closed&&p.closed,pd,gd,sd};
 }
 
 // ══ FEED ══
@@ -743,7 +743,7 @@ function buildFeed(){
       const curr=currMetrics(p);
       const gaps=reqs.filter(r=>curr[r.key]<r.v).length;
       return feedItem(p,`${titleOnly(p)} → ${statusOnly(p)}`,`${gaps} gap${gaps===1?'':'s'} to fix`,`color:var(--red)`);
-    }).join(''),oosPartners.length>0)});
+    }).join(''))});
 
   if(compareData){
     sections.push({order:becameOOS.length>0?1:101, html:buildSection('🚨','Became OOS',becameOOS.length,'becameoos',
@@ -754,9 +754,21 @@ function buildFeed(){
       promoted.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--amber)')).join(''))});
     // Growing and declining near top when they have data
     sections.push({order:hot.length>0?4:104, html:buildSection('📈','Growing',hot.length,'hot',
-      hot.map(({p,g})=>feedItem(p,p.title,`${g.pd>0?'+'+g.pd+'PC ':''} ${g.gd>0?'+'+g.gd+'GC':''}`.trim(),'color:var(--green)')).join(''))});
+      hot.map(({p,g})=>{
+        const parts=[];
+        if(g.pd>0)parts.push('+'+g.pd+'PC');
+        if(g.gd>0)parts.push('+'+g.gd+'GC');
+        if(g.sd>0)parts.push('+'+g.sd+' Svcs');
+        return feedItem(p,p.title,parts.join(' · '),'color:var(--green)');
+      }).join(''))});
     sections.push({order:cold.length>0?5:105, html:buildSection('📉','Declining',cold.length,'cold',
-      cold.map(({p,g})=>feedItem(p,p.title,`${g.pd<0?g.pd+'PC ':''} ${g.gd<0?g.gd+'GC':''}`.trim(),'color:var(--red)')).join(''))});
+      cold.map(({p,g})=>{
+        const parts=[];
+        if(g.pd<0)parts.push(g.pd+'PC');
+        if(g.gd<0)parts.push(g.gd+'GC');
+        if(g.sd<0)parts.push(g.sd+' Svcs');
+        return feedItem(p,p.title,parts.join(' · '),'color:var(--red)');
+      }).join(''))});
     sections.push({order:newP.length>0?6:106, html:buildSection('🔥','New Partners',newP.length,'new',
       newP.map(p=>feedItem(p,p.title,'','color:var(--green)')).join(''))});
   }
@@ -814,8 +826,8 @@ function buildFeed(){
       </div>
       <div class="more-section">
         <div class="more-title">👁️ Visibility</div>
-        <label class="vis-toggle"><input type="checkbox" id="showClosed" checked onchange="render()"> Show Closed</label>
-        <label class="vis-toggle"><input type="checkbox" id="showLow" checked onchange="render()"> Show Low (0–2 PC)</label>
+        <label class="vis-toggle"><input type="checkbox" id="showClosed" checked onchange="applyVisibility()"> Show Closed</label>
+        <label class="vis-toggle"><input type="checkbox" id="showLow" checked onchange="applyVisibility()"> Show Low (0–2 PC)</label>
         <div style="margin-top:.3rem;">
           <button class="nb" onclick="showHiddenList()" style="font-size:.68rem;width:100%">🚫 Hidden Partners (<span id="hiddenCount">0</span>)</button>
           <div id="hiddenList" style="display:none;margin-top:.4rem;max-height:120px;overflow-y:auto;"></div>
@@ -846,24 +858,24 @@ function buildFeed(){
   const hidden=currentData.partners.filter(p=>hiddenSession.has(p.name)||hiddenPerm[p.name]).length;
   const hc=document.getElementById('hiddenCount');if(hc)hc.textContent=hidden;
 
-  // Re-open sections that were open
+  // Restore previously open sections (user-opened only, not auto-open)
   document.querySelectorAll('.feed-body').forEach(b=>{
     const id=b.id.replace('body-','');
     const stored=sessionStorage.getItem('feed_open_'+id);
-    if(stored==='1'||(stored===null&&['oos','becameoos','nearprom','watchlist'].includes(id)&&b.previousElementSibling.querySelector('.feed-count')?.textContent!=='0')){
+    if(stored==='1'){
       b.classList.add('open');
       const ch=document.getElementById('chevron-'+id);if(ch)ch.classList.add('open');
     }
   });
 }
 
-function buildSection(em,label,count,id,inner,autoOpen=false){
+function buildSection(em,label,count,id,inner){
   return `<div class="feed-section">
     <div class="feed-header" onclick="toggleFeedSection('${id}')">
       <span class="feed-title">${em} ${label} <span class="feed-count">${count}</span></span>
-      <span class="feed-chevron${autoOpen&&count>0?' open':''}" id="chevron-${id}">›</span>
+      <span class="feed-chevron" id="chevron-${id}">›</span>
     </div>
-    <div class="feed-body${autoOpen&&count>0?' open':''}" id="body-${id}">${inner||'<div style="padding:.3rem 1rem;font-size:.7rem;color:var(--dim);font-style:italic">None</div>'}</div>
+    <div class="feed-body" id="body-${id}">${inner||'<div style="padding:.3rem 1rem;font-size:.7rem;color:var(--dim);font-style:italic">None</div>'}</div>
   </div>`;
 }
 
@@ -974,6 +986,13 @@ function unhide(name,type){if(type==='session')hiddenSession.delete(name);else{d
 function toggleRules(){const b=document.getElementById('rulesBody');const btn=document.getElementById('rulesBtn');const s=b.style.display==='none';b.style.display=s?'block':'none';btn.textContent=s?'▲ Hide':'▼ Show';}
 
 // ══ NAVIGATION ══
+// Apply visibility without resetting zoom/pan or rebuilding feed
+function applyVisibility(){
+  if(!currentData||!viewStack.length)return;
+  const root=currentData.partners.find(p=>p.name===viewStack[viewStack.length-1].name)||viewStack[viewStack.length-1];
+  layout(root);draw();
+}
+
 function navTo(name){
   if(!currentData)return;
   const p=currentData.partners.find(x=>x.name===name);
@@ -1074,7 +1093,8 @@ function showTT(e,n){
     const gaps=reqs.filter(r=>curr[r.key]<r.v);
     if(gaps.length){gapHtml=`<div class="tt-gaps">${gaps.map(r=>`<div class="tt-gap-row"><span style="color:var(--dim)">${r.l}</span><span style="color:var(--red)">${curr[r.key]}/${r.v}</span></div>`).join('')}</div>`;}
   }
-  tt.innerHTML=`<div class="tt-name">${dname(n)}</div><div class="tt-level">Level ${n.level}</div>${gh}${oos}<div class="tt-badge" style="background:${ncol(n)}">${n.title}</div><div class="tt-pigs"><div class="tt-pig"><div class="tt-pig-val">${n.pc}</div><div class="tt-pig-lbl">PC</div></div><div class="tt-pig"><div class="tt-pig-val">${ids}</div><div class="tt-pig-lbl">IDs</div></div><div class="tt-pig"><div class="tt-pig-val">${n.gc}</div><div class="tt-pig-lbl">GC</div></div><div class="tt-pig"><div class="tt-pig-val">${n.services}</div><div class="tt-pig-lbl">Svcs</div></div></div>${gapHtml}`;
+  const svcsDelta=g&&!g.isNew&&g.sd!==0?`<span style="color:${g.sd>0?'#22c55e':'#ef4444'};font-size:.65rem"> ${g.sd>0?'+':''}${g.sd}</span>`:'';
+  tt.innerHTML=`<div class="tt-name">${dname(n)}</div><div class="tt-level">Level ${n.level}</div>${gh}${oos}<div class="tt-badge" style="background:${ncol(n)}">${n.title}</div><div class="tt-pigs"><div class="tt-pig"><div class="tt-pig-val">${n.pc}</div><div class="tt-pig-lbl">PC</div></div><div class="tt-pig"><div class="tt-pig-val">${ids}</div><div class="tt-pig-lbl">IDs</div></div><div class="tt-pig"><div class="tt-pig-val">${n.gc}</div><div class="tt-pig-lbl">GC</div></div><div class="tt-pig"><div class="tt-pig-val">${n.services}${svcsDelta}</div><div class="tt-pig-lbl">Svcs</div></div></div>${gapHtml}`;
   const r=canvas.getBoundingClientRect();
   tt.style.left=Math.min(e.clientX-r.left+16,canvas.width-270)+'px';
   tt.style.top=Math.min(e.clientY-r.top+16,canvas.height-200)+'px';
