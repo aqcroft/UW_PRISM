@@ -473,7 +473,11 @@ function render(){
 function updateProgress(partner){
   const isMe=partner.name===currentData.partners[0].name;
   const status=isOOS(partner)?titleOnly(partner):statusOnly(partner);
-  const nexts=nextPositions(status.toUpperCase());
+  // If OOS, the first target should be re-qualifying at title level, not the next promotion
+  const baseStatus=isOOS(partner)?titleOnly(partner):statusOnly(partner);
+  const nexts=isOOS(partner)
+    ? [titleOnly(partner).toUpperCase(), ...nextPositions(titleOnly(partner).toUpperCase())]
+    : nextPositions(statusOnly(partner).toUpperCase());
   const badges=document.getElementById('progressBadges');
   const label=document.getElementById('progressLabel');
   label.textContent=isMe?'Progress to':sname(partner)+' →';
@@ -481,19 +485,15 @@ function updateProgress(partner){
   if(!selectedProgressTarget||!nexts.includes(selectedProgressTarget))selectedProgressTarget=nexts[0];
   badges.innerHTML=nexts.map(pos=>{
     const col=COLORS[pos]||COLORS.D;
-    return `<span class="pos-badge${selectedProgressTarget===pos?' selected':''}" style="background:${col}" onclick="selectProgressTarget('${pos}')">${pos}</span>`;
+    const isOOSBadge=isOOS(partner)&&pos===titleOnly(partner).toUpperCase();
+    return `<span class="pos-badge${selectedProgressTarget===pos?' selected':''}" style="background:${col};${isOOSBadge?'outline:2px solid #fbbf24;outline-offset:2px':''}" onclick="selectProgressTarget('${pos}')">${pos}</span>`;
   }).join(' ');
   const reqs=REQS[selectedProgressTarget]||[];
   const curr=currMetrics(partner);
   const container=document.getElementById('statsContainer');
-  // If OOS, default shows what's needed to get back to title
-  if(isOOS(partner)&&selectedProgressTarget===nexts[0]){
-    const titleReqs=REQS[titleOnly(partner).toUpperCase()]||[];
-    container.innerHTML=`<div style="font-size:.65rem;color:var(--amber);margin-bottom:.3rem;font-weight:700">Re-qualify at ${titleOnly(partner)} first:</div>`+
-      titleReqs.map(r=>{const met=curr[r.key]>=r.v;return `<div class="stat-row"><span style="color:var(--dim)">${r.l}</span><span class="stat-val ${met?'ok':'bad'}">${curr[r.key]}/${r.v}</span></div>`;}).join('');
-    return;
-  }
-  container.innerHTML=reqs.map(r=>{const met=curr[r.key]>=r.v;return `<div class="stat-row"><span style="color:var(--dim)">${r.l}</span><span class="stat-val ${met?'ok':'bad'}">${curr[r.key]}/${r.v}</span></div>`;}).join('');
+  const isOOSBadgeSelected=isOOS(partner)&&selectedProgressTarget===titleOnly(partner).toUpperCase();
+  const prefix=isOOSBadgeSelected?`<div style="font-size:.63rem;color:var(--amber);margin-bottom:.3rem;font-weight:700">⚠️ Re-qualify here to restore status</div>`:'';
+  container.innerHTML=prefix+reqs.map(r=>{const met=curr[r.key]>=r.v;return `<div class="stat-row"><span style="color:var(--dim)">${r.l}</span><span class="stat-val ${met?'ok':'bad'}">${curr[r.key]}/${r.v}</span></div>`;}).join('');
 }
 function selectProgressTarget(pos){
   selectedProgressTarget=pos;
