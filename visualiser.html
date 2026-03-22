@@ -9,8 +9,8 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     *{margin:0;padding:0;box-sizing:border-box;}
     :root{
-      --bg:#0a0e27;--surface:#1a1f3a;--surface2:#222844;
-      --border:#2a3051;--text:#e8eaf6;--dim:#8b8fa8;
+      --bg:#000000;--surface:#111111;--surface2:#1a1a1a;
+      --border:#2a2a2a;--text:#e8eaf6;--dim:#8b8fa8;
       --green:#22c55e;--red:#ef4444;--amber:#fbbf24;--blue:#3b82f6;
       --orange:#f97316;--cyan:#06b6d4;
     }
@@ -597,7 +597,9 @@ function layout(root){
 
 // ══ DRAW ══
 function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);if(!nodes.length)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#2c2c2e';ctx.fillRect(0,0,canvas.width,canvas.height);
+  if(!nodes.length)return;
   ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
   ctx.strokeStyle='rgba(139,143,168,.55)';ctx.lineWidth=1.5;
   lines.forEach(l=>{ctx.beginPath();ctx.moveTo(l.x1,l.y1);ctx.lineTo(l.x2,l.y2);ctx.stroke();});
@@ -750,10 +752,17 @@ function buildFeed(){
       becameOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--red)')).join(''))});
     sections.push({order:fixedOOS.length>0?2:102, html:buildSection('✅','Back in Status',fixedOOS.length,'fixedoos',
       fixedOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--green)')).join(''))});
-    sections.push({order:promoted.length>0?3:103, html:buildSection('⭐','Promoted',promoted.length,'promoted',
-      promoted.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--amber)')).join(''))});
+    sections.push({order:promoted.length>0?3:103, html:buildSection('⭐','Ups & Downs — Promoted',promoted.length,'promoted',
+      promoted.map(({p,from,to})=>{
+        const prev=compareData.partners.find(x=>x.name===p.name);
+        const parts=[];
+        if(prev&&p.pc!==prev.pc)parts.push(`${prev.pc}→${p.pc} PC`);
+        if(prev&&p.gc!==prev.gc)parts.push(`${prev.gc}→${p.gc} GC`);
+        if(prev&&p.services!==prev.services)parts.push(`${prev.services}→${p.services} Svcs`);
+        return feedItem(p,from+'→'+to,parts.join(' · '),'color:var(--amber)');
+      }).join(''))});
     // Growing and declining near top when they have data
-    sections.push({order:hot.length>0?4:104, html:buildSection('📈','Growing',hot.length,'hot',
+    sections.push({order:hot.length>0?4:104, html:buildSection('📈','Ups & Downs — Growing',hot.length,'hot',
       hot.map(({p,g})=>{
         const parts=[];
         if(g.pd>0)parts.push('+'+g.pd+'PC');
@@ -761,7 +770,7 @@ function buildFeed(){
         if(g.sd>0)parts.push('+'+g.sd+' Svcs');
         return feedItem(p,p.title,parts.join(' · '),'color:var(--green)');
       }).join(''))});
-    sections.push({order:cold.length>0?5:105, html:buildSection('📉','Declining',cold.length,'cold',
+    sections.push({order:cold.length>0?5:105, html:buildSection('📉','Ups & Downs — Declining',cold.length,'cold',
       cold.map(({p,g})=>{
         const parts=[];
         if(g.pd<0)parts.push(g.pd+'PC');
@@ -769,8 +778,8 @@ function buildFeed(){
         if(g.sd<0)parts.push(g.sd+' Svcs');
         return feedItem(p,p.title,parts.join(' · '),'color:var(--red)');
       }).join(''))});
-    sections.push({order:newP.length>0?6:106, html:buildSection('🔥','New Partners',newP.length,'new',
-      newP.map(p=>feedItem(p,p.title,'','color:var(--green)')).join(''))});
+    sections.push({order:newP.length>0?6:106, html:buildSection('🔥','Ups & Downs — New Partners',newP.length,'new',
+      newP.map(p=>feedItem(p,p.title,`${p.pc}PC · ${p.gc}GC · ${p.services} Svcs`,'color:var(--green)')).join(''))});
   }
 
   sections.push({order:nearProm.length>0?7:107, html:buildSection('🎯','Close to Promotion',nearProm.length,'nearprom',
