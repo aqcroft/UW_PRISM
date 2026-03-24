@@ -114,11 +114,16 @@
     .ctrl-btn:hover{border-color:var(--blue);color:var(--blue);}
 
     /* OOS overlay */
-    .oos-overlay{position:absolute;inset:0;background:var(--bg);overflow-y:auto;display:none;z-index:5;padding:1.5rem;}
-    .oos-overlay.show{display:block;}
-    .oos-card{background:var(--surface);border:1px solid #ef4444;border-radius:10px;padding:1.25rem;margin-bottom:1.25rem;}
-    .oos-card-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
-    .oos-gap-row{display:flex;justify-content:space-between;padding:.2rem 0;border-bottom:1px solid var(--border);font-size:.75rem;}
+    .oos-overlay{position:absolute;inset:0;background:var(--bg);overflow-y:auto;z-index:5;padding:1.5rem;display:none;flex-direction:column;}
+    .oos-overlay.show{display:flex;}
+    .oos-card{background:var(--surface);border:1px solid #ef4444;border-radius:10px;overflow:hidden;display:grid;grid-template-columns:1fr 2fr;min-height:260px;margin-bottom:1.25rem;}
+    .oos-col{padding:1rem;border-right:1px solid var(--border);display:flex;flex-direction:column;}
+    .oos-col:last-child{border-right:none;padding:.5rem;}
+    .oos-col-title{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin-bottom:.65rem;}
+    .oos-gap-row{display:flex;justify-content:space-between;padding:.2rem 0;border-bottom:1px solid var(--border);font-size:.73rem;}
+    .oos-mini-wrap{flex:1;position:relative;overflow:hidden;border-radius:6px;background:#1c1c1e;min-height:200px;}
+    .oos-mini-canvas{cursor:grab;display:block;}
+    .oos-mini-canvas:active{cursor:grabbing;}
 
     /* Tooltip */
     .tooltip{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.9rem;pointer-events:none;opacity:0;z-index:100;min-width:190px;max-width:260px;}
@@ -212,6 +217,7 @@
       <button class="nb" onclick="goHome()">🏠 Top</button>
       <button class="nb" onclick="loadFromSheet()">🔄</button>
       <button class="nb" id="oosBtn" onclick="toggleOOS()">⚠️ OOS</button>
+      <button class="nb" id="shareBtn" onclick="showShareDialog()" style="margin-left:auto;display:none">🔗 Share</button>
     </div>
 
     <!-- Date comparison -->
@@ -245,14 +251,14 @@
 
     <!-- OOS overlay -->
     <div class="oos-overlay" id="oosOverlay">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-shrink:0;">
         <div>
           <div style="font-size:1.1rem;font-weight:800;">⚠️ Out of Status Partners</div>
           <div style="font-size:.75rem;color:var(--dim);margin-top:.2rem;" id="oosCount"></div>
         </div>
         <button class="nb" onclick="toggleOOS()">✕ Close</button>
       </div>
-      <div id="oosCards"></div>
+      <div id="oosCards" style="display:flex;flex-direction:column;gap:1.25rem;"></div>
     </div>
 
     <div class="breadcrumb" id="breadcrumb"></div>
@@ -279,6 +285,7 @@
   <div class="ctx-item" onclick="goBack()">⬅️ Back</div>
   <div class="ctx-sep"></div>
   <div class="ctx-item" onclick="ctxNickname()">✏️ Set nickname</div>
+  <div class="ctx-item" id="ctxShareItem" onclick="ctxShare()">🔗 Share view</div>
   <div class="ctx-sep"></div>
   <div class="ctx-section-label">👁 Watchlist</div>
   <div class="ctx-watch-row">
@@ -301,6 +308,24 @@
     <div class="modal-btns">
       <button class="save" onclick="saveNickname()">Save</button>
       <button class="cancel" onclick="closeModal('nickModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-bg" id="shareModal">
+  <div class="modal" style="width:360px">
+    <h3>🔗 Share structure view</h3>
+    <p style="font-size:.78rem;color:var(--dim);margin-bottom:.75rem">Generate a link for a team member. They'll see only their structure downwards — navigation locked to their position.</p>
+    <label style="font-size:.72rem;color:var(--dim);display:block;margin-bottom:.3rem">Partner name</label>
+    <input type="text" id="shareInput" placeholder="e.g. Vikesh Patel" oninput="updateShareLink(this.value)" style="margin-bottom:.6rem">
+    <label style="font-size:.72rem;color:var(--dim);display:block;margin-bottom:.3rem">Shareable link</label>
+    <div style="display:flex;gap:.4rem;margin-bottom:.75rem">
+      <input type="text" id="shareLinkOut" readonly style="font-size:.65rem;color:var(--dim);background:var(--bg);flex:1">
+      <button id="shareCopyBtn" onclick="copyShareLink()" style="padding:.4rem .7rem;background:var(--blue);border:none;color:#fff;border-radius:5px;cursor:pointer;font-size:.72rem;font-weight:700;white-space:nowrap">Copy</button>
+    </div>
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeShareModal()">Close</button>
     </div>
   </div>
 </div>
@@ -355,6 +380,10 @@ function nextPositions(pos){
   return['QD','TL'];
 }
 
+// ══ BAKED-IN APPS SCRIPT URL ══
+// Update this when you redeploy — shared links will auto-update
+const BAKED_SHEET_URL='https://script.google.com/macros/s/AKfycbzQcty1IR8J1NF7FWt8ZcSqN1jCLE5VSDzTGn3At30bkTX3G3MZsxuxbzcQ13255Lb3/exec';
+
 // ══ STATE ══
 let allDates={},currentData=null,compareData=null,viewStack=[];
 let scale=1,ox=0,oy=0,isDrag=false,ddx=0,ddy=0;
@@ -365,6 +394,7 @@ let ctxTarget=null,oosMode=false,selectedProgressTarget=null;
 let pendingRemoveWatch=null;
 let touchTimer=null,touchMoved=false;
 let includeQDRisk=false;
+let rootLock=null; // Set from ?root= URL param — locks navigation for shared views
 
 // ══ INIT ══
 window.addEventListener('load',()=>{
@@ -384,8 +414,17 @@ window.addEventListener('load',()=>{
   document.addEventListener('click',e=>{if(!document.getElementById('ctxMenu').contains(e.target))closeCtx();});
   initDivider();
   loadLocal();
-  const url=localStorage.getItem('prism_sheet_url');
-  if(url){document.getElementById('sheetUrl').value=url;loadFromSheet();}
+
+  // Check for shared view (?root=Name)
+  const urlParams=new URLSearchParams(window.location.search);
+  const rootParam=urlParams.get('root');
+  if(rootParam){
+    rootLock=decodeURIComponent(rootParam);
+    setupSharedView();
+  } else {
+    const url=localStorage.getItem('prism_sheet_url');
+    if(url){document.getElementById('sheetUrl').value=url;loadFromSheet();}
+  }
 });
 
 function resize(){const w=document.getElementById('canvasWrap');canvas.width=w.clientWidth;canvas.height=w.clientHeight;draw();}
@@ -504,7 +543,8 @@ function useLatest(){
   const dates=Object.keys(allDates).sort().reverse();if(!dates.length)return;
   currentData={date:dates[0],partners:allDates[dates[0]]};
   if(dates.length>1)compareData={date:dates[1],partners:allDates[dates[1]]};
-  viewStack=[currentData.partners[0]];selectedProgressTarget=null;render();
+  viewStack=[currentData.partners[0]];selectedProgressTarget=null;
+  if(rootLock)applyRootLock();else render();
 }
 function applyComparison(){
   const d1=document.getElementById('dateSelect1').value;const d2=document.getElementById('dateSelect2').value;
@@ -1006,72 +1046,267 @@ function toggleOOS(){
   oosMode=!oosMode;
   document.getElementById('oosOverlay').classList.toggle('show',oosMode);
   document.getElementById('oosBtn').classList.toggle('active',oosMode);
+  document.getElementById('oosBtn').textContent=oosMode?'✕ OOS':'⚠️ OOS';
   if(oosMode)buildOOSOverlay();
 }
 function buildOOSOverlay(){
   if(!currentData)return;
-  const oos=currentData.partners.filter(p=>isOOS(p)&&!p.closed);
-  document.getElementById('oosCount').textContent=oos.length+' partner'+(oos.length===1?'':'')+' out of status';
-  if(!oos.length){document.getElementById('oosCards').innerHTML='<div style="color:var(--dim);text-align:center;padding:2rem">🎉 No OOS partners</div>';return;}
+
+  // Separate TLs (prioritise) from rest
+  const allOOS=currentData.partners.filter(p=>isOOS(p)&&!p.closed);
+  const tlOOS=allOOS.filter(p=>titleOnly(p).toUpperCase().includes('TL')||titleOnly(p).toUpperCase().includes('GL'));
+  const otherOOS=allOOS.filter(p=>!titleOnly(p).toUpperCase().includes('TL')&&!titleOnly(p).toUpperCase().includes('GL'));
+  const oos=[...tlOOS,...otherOOS];
+
+  document.getElementById('oosCount').textContent=oos.length+' partner'+(oos.length===1?'':'')+' out of status'+(tlOOS.length?' · '+tlOOS.length+' TL/GL priority':'');
+  const container=document.getElementById('oosCards');
+  if(!oos.length){container.innerHTML='<div style="color:var(--dim);text-align:center;padding:2rem">🎉 No OOS partners</div>';return;}
   oos.forEach(p=>{if(!watchlist[p.name])watchlist[p.name]='cold';});saveLocal();
-  const html=oos.map(p=>{
-    const title=titleOnly(p).toUpperCase();const reqs=REQS[title]||[];const curr=currMetrics(p);
-    const gapRows=reqs.map(r=>{const met=curr[r.key]>=r.v;return `<div class="oos-gap-row"><span style="color:var(--dim)">${r.l}</span><span style="color:${met?'#22c55e':'#ef4444'};font-weight:700">${curr[r.key]}/${r.v} ${met?'✓':''}</span></div>`;}).join('');
-    const g=grw(p);const movt=g&&!g.isNew?(g.isHot?'<span style="color:#22c55e;font-size:.65rem">🔥 growing</span>':g.isCold?'<span style="color:#3b82f6;font-size:.65rem">❄️ declining</span>':''):'';
-    return `<div class="oos-card">
-      <div class="oos-card-header">
-        <div style="width:42px;height:42px;border-radius:50%;background:${titleCol(p)};border:3px solid ${ncol(p)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#fff;flex-shrink:0">${sname(p)}</div>
-        <div style="flex:1"><div style="font-weight:700;font-size:.95rem">${dname(p)} ${movt}</div><div style="font-size:.7rem;color:var(--dim)">Title: <strong style="color:${titleCol(p)}">${title}</strong> · Status: <strong style="color:${ncol(p)}">${statusOnly(p).toUpperCase()}</strong></div></div>
-        <button onclick="navToAndClose('${p.name}')" style="background:none;border:1px solid var(--border);color:var(--blue);border-radius:5px;cursor:pointer;font-size:.7rem;padding:.3rem .6rem">Focus →</button>
+
+  container.innerHTML='';
+
+  // D/QD tier — flat list, no canvas
+  const dTier=oos.filter(p=>{const t=titleOnly(p).toUpperCase();return!t.includes('TL')&&!t.includes('GL')&&!t.includes('STL');});
+  const structTier=oos.filter(p=>{const t=titleOnly(p).toUpperCase();return t.includes('TL')||t.includes('GL')||t.includes('STL');});
+
+  // Structural tier — two column cards with mini canvas
+  structTier.forEach(p=>{
+    const title=titleOnly(p).toUpperCase();
+    const reqs=REQS[title]||[];
+    const curr=currMetrics(p);
+    const g=grw(p);
+    const movt=g&&!g.isNew?(g.isHot?'🔥':g.isCold?'❄️':''):'';
+    const gapRows=reqs.map(r=>{
+      const met=curr[r.key]>=r.v;
+      return `<div class="oos-gap-row"><span style="color:var(--dim)">${r.l}</span><span style="color:${met?'#22c55e':'#ef4444'};font-weight:700">${curr[r.key]}/${r.v} ${met?'✓':''}</span></div>`;
+    }).join('');
+
+    const card=document.createElement('div');
+    card.className='oos-card';
+    const safeId='oos-'+p.name.replace(/[^a-z0-9]/gi,'-');
+    card.innerHTML=`
+      <div class="oos-col">
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;">
+          <div style="width:34px;height:34px;border-radius:50%;background:${titleCol(p)};border:3px solid ${ncol(p)};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;color:#fff;flex-shrink:0">${sname(p)}</div>
+          <div>
+            <div style="font-weight:700;font-size:.82rem">${dname(p)} ${movt}</div>
+            <div style="font-size:.62rem;color:var(--dim)">${title} → ${statusOnly(p).toUpperCase()}</div>
+          </div>
+        </div>
+        <div class="oos-col-title">Re-qualify at ${title}</div>
+        ${gapRows}
+        <button onclick="oosNavTo('${p.name}')" style="margin-top:auto;padding:.35rem .6rem;background:none;border:1px solid var(--border);color:var(--blue);border-radius:5px;cursor:pointer;font-size:.68rem;font-weight:700;margin-top:.75rem">🔍 Focus</button>
       </div>
-      <div style="font-size:.7rem;font-weight:700;margin-bottom:.3rem;color:var(--dim)">To re-qualify at ${title}:</div>
-      ${gapRows}
-    </div>`;
-  }).join('');
-  document.getElementById('oosCards').innerHTML=html;
-}
-function navToAndClose(name){toggleOOS();navTo(name);}
+      <div class="oos-col">
+        <div class="oos-col-title" style="display:flex;justify-content:space-between">
+          Structure
+          <span style="font-size:.6rem;color:var(--dim)">Double-click to focus</span>
+        </div>
+        <div class="oos-mini-wrap" id="${safeId}-wrap">
+          <canvas class="oos-mini-canvas" id="${safeId}"></canvas>
+        </div>
+      </div>`;
+    container.appendChild(card);
+    setTimeout(()=>drawOOSMiniCanvas(p, safeId), 60);
+  });
 
-// ══ WATCHLIST ══
-function setWatch(name,type){watchlist[name]=type;saveLocal();buildFeed();draw();}
-function askRemoveWatch(name){
-  pendingRemoveWatch=name;
-  document.getElementById('removeWatchName').textContent=nicknames[name]||name.split(' ')[0];
-  document.getElementById('removeWatchModal').classList.add('show');
+  // D/QD tier — flat list
+  if(dTier.length){
+    const section=document.createElement('div');
+    section.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;';
+    section.innerHTML=`<div class="oos-col-title" style="margin-bottom:.5rem">D / QD tier — ${dTier.length} partner${dTier.length===1?'':''}</div>`+
+      dTier.map(p=>{
+        const title=titleOnly(p).toUpperCase();
+        const reqs=REQS[title]||[];const curr=currMetrics(p);
+        const gaps=reqs.filter(r=>curr[r.key]<r.v).map(r=>`+${r.v-curr[r.key]} ${r.l}`).join(', ');
+        return `<div class="oos-gap-row" style="cursor:pointer" onclick="oosNavTo('${p.name}')">
+          <span><strong>${sname(p)}</strong> <span style="color:var(--dim);font-size:.68rem">${title}→${statusOnly(p).toUpperCase()}</span></span>
+          <span style="color:var(--red);font-size:.68rem">${gaps}</span>
+        </div>`;
+      }).join('');
+    container.appendChild(section);
+  }
 }
-function confirmRemoveWatch(){if(pendingRemoveWatch){delete watchlist[pendingRemoveWatch];saveLocal();buildFeed();draw();}closeModal('removeWatchModal');}
 
-// ══ SEARCH ══
-function searchPartners(q){
-  const res=document.getElementById('searchResults');if(!currentData||!q.trim()){res.innerHTML='';return;}
-  const m=currentData.partners.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).slice(0,10);
-  res.innerHTML=m.length?m.map(p=>`<div class="search-result" onclick="navTo('${p.name}')">${sname(p)} <span style="color:var(--dim);font-size:.65rem">${p.title} · ${p.pc}PC · ${p.gc}GC</span></div>`).join(''):'<div style="color:var(--dim);font-size:.7rem">No matches</div>';
+// Navigate from OOS view to main structure
+function oosNavTo(name){
+  oosMode=false;
+  document.getElementById('oosOverlay').classList.remove('show');
+  document.getElementById('oosBtn').classList.remove('active');
+  document.getElementById('oosBtn').textContent='⚠️ OOS';
+  navTo(name);
 }
-function showHiddenList(){
-  const el=document.getElementById('hiddenList');const showing=el.style.display==='none';el.style.display=showing?'block':'none';
-  if(!showing)return;
-  const all=[...[...hiddenSession].map(n=>({n,type:'session'})),...Object.keys(hiddenPerm).map(n=>({n,type:'perm'}))];
-  if(!all.length){el.innerHTML='<div style="color:var(--dim);font-size:.7rem">None hidden</div>';return;}
-  el.innerHTML=all.map(({n,type})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.25rem .3rem;font-size:.7rem;border-bottom:1px solid var(--border)"><span>${n.split(' ')[0]} <span style="color:var(--dim)">(${type})</span></span><button onclick="unhide('${n}','${type}')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.68rem">Unhide</button></div>`).join('');
-}
-function unhide(name,type){if(type==='session')hiddenSession.delete(name);else{delete hiddenPerm[name];saveLocal();}render();showHiddenList();}
-function toggleRules(){const b=document.getElementById('rulesBody');const btn=document.getElementById('rulesBtn');const s=b.style.display==='none';b.style.display=s?'block':'none';btn.textContent=s?'▲ Hide':'▼ Show';}
 
-// ══ NAVIGATION ══
-// Apply visibility without resetting zoom/pan or rebuilding feed
-function applyVisibility(){
-  if(!currentData||!viewStack.length)return;
-  const root=currentData.partners.find(p=>p.name===viewStack[viewStack.length-1].name)||viewStack[viewStack.length-1];
-  layout(root);draw();
+
+function drawOOSMiniCanvas(partner, safeId){
+  const canvas=document.getElementById(safeId);
+  const wrap=document.getElementById(safeId+'-wrap');
+  if(!canvas||!wrap||!currentData)return;
+
+  // Size canvas to container
+  const w=wrap.clientWidth||300;
+  const h=wrap.clientHeight||200;
+  canvas.width=w;canvas.height=h;
+  canvas.style.width=w+'px';canvas.style.height=h+'px';
+
+  let mscale=1,mox=0,moy=0,mDrag=false,mDx=0,mDy=0;
+
+  function drawMini(){
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#1c1c1e';ctx.fillRect(0,0,w,h);
+    ctx.save();ctx.translate(mox,moy);ctx.scale(mscale,mscale);
+
+    const pi=currentData.partners.indexOf(partner);
+    const cx=w/2,cy=h/2;
+    const nodes=[],lines=[];
+    nodes.push({...partner,x:cx,y:cy,r:26,isRoot:true,idx:pi});
+
+    const all=[];
+    for(let i=pi+1;i<currentData.partners.length;i++){
+      const p=currentData.partners[i];if(p.level<=partner.level)break;
+      all.push({...p,idx:i});
+    }
+    const gpar=p=>{for(let i=p.idx-1;i>=pi;i--){if(currentData.partners[i].level===p.level-1)return i===pi?partner:(all.find(d=>d.idx===i)||partner);}return partner;};
+    const gkids=parent=>{const pid=parent.idx!==undefined?parent.idx:pi;return all.filter(p=>{const par=gpar(p);return(par.idx!==undefined?par.idx:pi)===pid;});};
+    const cdes=p=>{let c=0;for(let i=(p.idx||pi)+1;i<currentData.partners.length;i++){if(currentData.partners[i].level<=p.level)break;c++;}return c;};
+    const place=(parent,px,py,mid,depth,span)=>{
+      const kids=gkids(parent);if(!kids.length)return;
+      const sizes=kids.map(k=>Math.max(1,cdes(k)));const tot=sizes.reduce((a,b)=>a+b,0);
+      const br=depth===1?75:depth===2?52:38;let ang=mid-span/2;
+      kids.forEach((k,i)=>{
+        const ks=(sizes[i]/tot)*span;const angle=ang+ks/2;
+        const x=px+Math.cos(angle)*br,y=py+Math.sin(angle)*br;
+        const sz=k.title.toUpperCase().includes('TL')||k.title.toUpperCase().includes('GL')?20:16;
+        nodes.push({...k,x,y,r:sz});lines.push({x1:px,y1:py,x2:x,y2:y});
+        place(k,x,y,angle,depth+1,ks);ang+=ks;
+      });
+    };
+    place(partner,cx,cy,-Math.PI/2,1,Math.PI*2);
+
+    ctx.strokeStyle='rgba(139,143,168,.4)';ctx.lineWidth=1;
+    lines.forEach(l=>{ctx.beginPath();ctx.moveTo(l.x1,l.y1);ctx.lineTo(l.x2,l.y2);ctx.stroke();});
+    nodes.forEach(n=>{
+      const oos=isOOS(n);const fillCol=oos?titleCol(n):ncol(n);
+      ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=fillCol;ctx.fill();
+      if(n.isRoot){ctx.strokeStyle='#00d9ff';ctx.lineWidth=2.5;ctx.stroke();}
+      if(n.closed){ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();}
+      if(oos){ctx.strokeStyle=ncol(n);ctx.lineWidth=2;ctx.stroke();}
+      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font=`700 ${n.r>22?8:7}px Inter`;ctx.fillText(sname(n),n.x,n.y-3);
+      ctx.font='600 6px Inter';ctx.fillText(`${n.pc} ${n.gc}`,n.x,n.y+4);
+    });
+    ctx.restore();
+  }
+
+  drawMini();
+
+  // Drag
+  canvas.addEventListener('mousedown',e=>{mDrag=true;mDx=e.clientX-mox;mDy=e.clientY-moy;});
+  canvas.addEventListener('mousemove',e=>{if(mDrag){mox=e.clientX-mDx;moy=e.clientY-mDy;drawMini();}});
+  canvas.addEventListener('mouseup',()=>mDrag=false);
+  canvas.addEventListener('mouseleave',()=>mDrag=false);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY>0?.88:1.12;mscale=Math.max(.2,Math.min(5,mscale*f));drawMini();},{passive:false});
+  canvas.addEventListener('dblclick',()=>oosNavTo(partner.name));
 }
+
+
+// ── Shared view setup ──
+function setupSharedView(){
+  // Hide config bar and share button in shared view
+  const configBar=document.getElementById('configBar');
+  if(configBar)configBar.style.display='none';
+  const shareBtn=document.getElementById('shareBtn');
+  if(shareBtn)shareBtn.style.display='none';
+  const ctxShareItem=document.getElementById('ctxShareItem');
+  if(ctxShareItem)ctxShareItem.style.display='none';
+
+  // Show shared mode banner
+  const header=document.getElementById('statusBadge');
+  const sb=document.querySelector('.sb-header');
+  const banner=document.createElement('div');
+  banner.style.cssText='margin-top:.5rem;padding:.4rem .6rem;border-radius:6px;font-size:.7rem;font-weight:700;background:rgba(59,130,246,.15);border:1px solid var(--blue);color:var(--blue)';
+  banner.textContent='👁 Shared view: '+rootLock;
+  if(sb)sb.appendChild(banner);
+
+  // Use baked URL to load
+  const input=document.getElementById('sheetUrl');
+  if(input)input.value=BAKED_SHEET_URL;
+  saveUrl();
+  loadFromSheet();
+}
+
+// After loading, lock navigation to root partner
+function applyRootLock(){
+  if(!rootLock||!currentData)return;
+  const p=currentData.partners.find(x=>x.name.toLowerCase()===rootLock.toLowerCase());
+  if(p){
+    viewStack=[p];
+    selectedProgressTarget=null;
+    render();
+  } else {
+    document.getElementById('viewingLabel').textContent='⚠️ Partner "'+rootLock+'" not found in this structure.';
+  }
+}
+
+// Generate shareable link for a partner
+function generateShareLink(name){
+  const base=window.location.origin+window.location.pathname;
+  return base+'?root='+encodeURIComponent(name);
+}
+
+// Share button — shown only in your own view
+function showShareDialog(){
+  if(!currentData)return;
+  const root=viewStack.length?viewStack[viewStack.length-1]:currentData.partners[0];
+
+  // Build partner list for autocomplete
+  const modal=document.getElementById('shareModal');
+  document.getElementById('shareInput').value=root.name;
+  updateShareLink(root.name);
+  modal.classList.add('show');
+}
+function updateShareLink(name){
+  const link=generateShareLink(name);
+  document.getElementById('shareLinkOut').value=link;
+}
+function copyShareLink(){
+  const el=document.getElementById('shareLinkOut');
+  el.select();
+  document.execCommand('copy');
+  document.getElementById('shareCopyBtn').textContent='✅ Copied!';
+  setTimeout(()=>document.getElementById('shareCopyBtn').textContent='Copy',2000);
+}
+function closeShareModal(){document.getElementById('shareModal').classList.remove('show');}
 
 function navTo(name){
   if(!currentData)return;
   const p=currentData.partners.find(x=>x.name===name);
-  if(p){viewStack.push(p);selectedProgressTarget=null;render();closeCtx();}
+  if(!p)return;
+  // In shared view, don't allow navigating above the root lock
+  if(rootLock){
+    const root=currentData.partners.find(x=>x.name.toLowerCase()===rootLock.toLowerCase());
+    if(root&&p.level<root.level)return;
+  }
+  viewStack.push(p);selectedProgressTarget=null;render();closeCtx();
 }
-function goBack(){if(viewStack.length>1){viewStack.pop();selectedProgressTarget=null;render();}}
-function goHome(){if(currentData){viewStack=[currentData.partners[0]];selectedProgressTarget=null;render();}}
+function goBack(){
+  if(viewStack.length>1){
+    if(rootLock){
+      const root=currentData?.partners.find(x=>x.name.toLowerCase()===rootLock.toLowerCase());
+      if(root&&viewStack[viewStack.length-2]?.level<root.level)return;
+    }
+    viewStack.pop();selectedProgressTarget=null;render();
+  }
+}
+function goHome(){
+  if(!currentData)return;
+  if(rootLock){
+    const root=currentData.partners.find(x=>x.name.toLowerCase()===rootLock.toLowerCase());
+    if(root){viewStack=[root];selectedProgressTarget=null;render();return;}
+  }
+  viewStack=[currentData.partners[0]];selectedProgressTarget=null;render();
+}
 
 // ══ MOUSE ══
 function mdown(e){if(e.button!==0)return;isDrag=true;ddx=e.clientX-ox;ddy=e.clientY-oy;}
@@ -1118,6 +1353,13 @@ function mctx(e){
 }
 function closeCtx(){document.getElementById('ctxMenu').classList.remove('show');}
 function ctxFocus(){if(ctxTarget)navTo(ctxTarget.name);}
+function ctxShare(){
+  if(!ctxTarget)return;
+  closeCtx();
+  document.getElementById('shareInput').value=ctxTarget.name;
+  updateShareLink(ctxTarget.name);
+  document.getElementById('shareModal').classList.add('show');
+}
 function ctxUp(){
   if(!ctxTarget||!currentData)return;closeCtx();
   const ci=currentData.partners.findIndex(p=>p.name===ctxTarget.name);
