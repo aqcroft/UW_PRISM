@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,6 +139,23 @@
     .empty-sub{color:var(--dim);font-size:.85rem;margin-bottom:1.25rem;max-width:380px;line-height:1.5;}
 
     /* Context menu */
+    #urlStatus[title]:hover::after{
+      content:attr(title);
+      position:fixed;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:5px;
+      padding:.3rem .55rem;
+      font-size:.65rem;
+      color:var(--text);
+      white-space:nowrap;
+      z-index:999;
+      top:auto;
+      left:1rem;
+      word-break:break-all;
+      white-space:normal;
+      max-width:260px;
+    }
     .ctx-menu{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.4rem;z-index:2000;display:none;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
     .ctx-menu.show{display:block;}
     .ctx-item{padding:.5rem .75rem;cursor:pointer;border-radius:5px;font-size:.78rem;display:flex;align-items:center;gap:.5rem;}
@@ -181,10 +197,14 @@
       <div class="status-badge" id="statusBadge"></div>
     </div>
 
-    <div class="config-bar">
+    <div class="config-bar" id="configBar">
       <label>URL</label>
-      <input type="url" id="sheetUrl" placeholder="Apps Script URL" oninput="saveUrl()">
-      <button onclick="loadFromSheet()">Load</button>
+      <input type="url" id="sheetUrl" placeholder="Apps Script URL" oninput="saveUrl()" style="display:none">
+      <div id="urlStatus" style="flex:1;font-size:.72rem;color:var(--dim);cursor:default" title="">
+        <span style="color:var(--dim);font-style:italic">No URL saved</span>
+      </div>
+      <button id="urlChangeBtn" onclick="showUrlInput()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.7rem;padding:0;white-space:nowrap">change</button>
+      <button id="urlLoadBtn" onclick="loadFromSheet()" style="display:none">Load</button>
     </div>
 
     <div class="nav-bar">
@@ -194,6 +214,13 @@
       <button class="nb" id="oosBtn" onclick="toggleOOS()">⚠️ OOS</button>
     </div>
 
+    <!-- Date comparison -->
+    <div class="date-bar">
+      <select id="dateSelect1" onchange="applyComparison()"></select>
+      <span>vs</span>
+      <select id="dateSelect2" onchange="applyComparison()"></select>
+    </div>
+
     <!-- Progress -->
     <div class="progress-section">
       <div class="progress-header">
@@ -201,13 +228,6 @@
         <div id="progressBadges"></div>
       </div>
       <div id="statsContainer"></div>
-    </div>
-
-    <!-- Date comparison -->
-    <div class="date-bar">
-      <select id="dateSelect1" onchange="applyComparison()"></select>
-      <span>vs</span>
-      <select id="dateSelect2" onchange="applyComparison()"></select>
     </div>
 
     <!-- Scrolling feed -->
@@ -369,7 +389,52 @@ window.addEventListener('load',()=>{
 });
 
 function resize(){const w=document.getElementById('canvasWrap');canvas.width=w.clientWidth;canvas.height=w.clientHeight;draw();}
-function saveUrl(){const u=document.getElementById('sheetUrl').value.trim();if(u)localStorage.setItem('prism_sheet_url',u);}
+function saveUrl(){
+  const u=document.getElementById('sheetUrl').value.trim();
+  if(u){
+    localStorage.setItem('prism_sheet_url',u);
+    const now=new Date();
+    localStorage.setItem('prism_url_updated',now.toISOString());
+    updateUrlStatus(u,now);
+  }
+}
+function updateUrlStatus(url,date){
+  const statusEl=document.getElementById('urlStatus');
+  const inputEl=document.getElementById('sheetUrl');
+  const loadBtn=document.getElementById('urlLoadBtn');
+  const changeBtn=document.getElementById('urlChangeBtn');
+  if(!url){
+    statusEl.innerHTML='<span style="color:var(--dim);font-style:italic">No URL saved</span>';
+    statusEl.title='';
+    statusEl.style.display='block';
+    inputEl.style.display='none';
+    loadBtn.style.display='none';
+    changeBtn.textContent='set URL';
+    return;
+  }
+  const d=date||new Date(localStorage.getItem('prism_url_updated')||Date.now());
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yy=String(d.getFullYear()).slice(2);
+  const hhmm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const fmt=dd+'/'+mm+'/'+yy+' '+hhmm;
+  statusEl.innerHTML='<span style="color:var(--dim)">Last updated '+fmt+'</span>';
+  statusEl.title=url;
+  statusEl.style.display='block';
+  inputEl.style.display='none';
+  loadBtn.style.display='none';
+  changeBtn.textContent='change';
+}
+function showUrlInput(){
+  const statusEl=document.getElementById('urlStatus');
+  const inputEl=document.getElementById('sheetUrl');
+  const loadBtn=document.getElementById('urlLoadBtn');
+  statusEl.style.display='none';
+  inputEl.style.display='block';
+  loadBtn.style.display='block';
+  inputEl.focus();
+  inputEl.select();
+}
 function parseBool(v){if(v===true||v===1)return true;if(typeof v==='string'){const s=v.toUpperCase();return s==='TRUE'||s==='YES'||s==='1';}return false;}
 
 // ══ DIVIDER ══
@@ -390,6 +455,9 @@ function loadLocal(){
   try{const nk=localStorage.getItem('prism_nicknames');if(nk)nicknames=JSON.parse(nk);}catch(e){}
   try{const wl=localStorage.getItem('prism_watchlist');if(wl)watchlist=JSON.parse(wl);}catch(e){}
   try{const hp=localStorage.getItem('prism_hidden_perm');if(hp)hiddenPerm=JSON.parse(hp);}catch(e){}
+  // Restore URL status display
+  const savedUrl=localStorage.getItem('prism_sheet_url');
+  if(savedUrl)updateUrlStatus(savedUrl,null);
 }
 function saveLocal(){
   localStorage.setItem('prism_nicknames',JSON.stringify(nicknames));
@@ -625,7 +693,7 @@ function draw(){
     const oos=isOOS(n);const fillCol=oos?titleCol(n):ncol(n);
     ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=fillCol;ctx.fill();
     if(n.isRoot){ctx.strokeStyle='#00d9ff';ctx.lineWidth=4;ctx.stroke();}
-    if(n.closed){ctx.strokeStyle='#94a3b8';ctx.lineWidth=2.5;ctx.stroke();}
+    if(n.closed){ctx.strokeStyle='#000000';ctx.lineWidth=3;ctx.stroke();}
     if(oos){
       ctx.strokeStyle=ncol(n);ctx.lineWidth=4;ctx.stroke();
       ctx.save();ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.clip();
@@ -654,7 +722,7 @@ function draw(){
 function cads(p){const pi=currentData.partners.findIndex(x=>x.name===p.name);let c=0;for(let i=pi+1;i<currentData.partners.length;i++){const q=currentData.partners[i];if(q.level<=p.level)break;if(!q.closed)c++;}return c;}
 
 function ncol(p){
-  if(p.closed)return'#111';const s=statusOnly(p).toUpperCase();
+  if(p.closed)return'#2d3d2d';const s=statusOnly(p).toUpperCase();
   if(s.includes('NNL'))return COLORS.NNL;if(s.includes('NGL'))return COLORS.NGL;
   if(s.includes('SGL'))return COLORS.SGL;if(s.includes('GL'))return COLORS.GL;
   if(s.includes('STL'))return COLORS.STL;if(s.includes('TL'))return COLORS.TL;
@@ -735,24 +803,30 @@ function buildFeed(){
     const p=currentData.partners.find(x=>x.name===name);if(p)watched.push(p);
   });
 
-  // Build sections dynamically — sections with content float up
-  const sections = [];
-
-  // Always-present structural alerts first
-  sections.push({order:oosPartners.length>0?0:100, html:buildSection('🚨','Out of Status',oosPartners.length,'oos',
-    oosPartners.map(p=>{
-      const reqs=REQS[titleOnly(p).toUpperCase()]||[];
-      const curr=currMetrics(p);
-      const gaps=reqs.filter(r=>curr[r.key]<r.v).length;
-      return feedItem(p,`${titleOnly(p)} → ${statusOnly(p)}`,`${gaps} gap${gaps===1?'':'s'} to fix`,`color:var(--red)`);
-    }).join(''))});
-
+  // ── Ups & Downs section — sub-grouped by metric ──
   if(compareData){
-    sections.push({order:becameOOS.length>0?1:101, html:buildSection('🚨','Became OOS',becameOOS.length,'becameoos',
-      becameOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--red)')).join(''))});
-    sections.push({order:fixedOOS.length>0?2:102, html:buildSection('✅','Back in Status',fixedOOS.length,'fixedoos',
-      fixedOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--green)')).join(''))});
-    sections.push({order:promoted.length>0?3:103, html:buildSection('⭐','Ups & Downs — Promoted',promoted.length,'promoted',
+    const newlyClosed2=currentData.partners.filter(p=>{const g=grw(p);return g&&!g.isNew&&g.newlyClosed;});
+    const pcMovers=[];const gcMovers=[];const svcMovers=[];
+    hot.forEach(({p,g})=>{
+      if(g.pd>0)pcMovers.push({p,g});
+      if(g.gd>0)gcMovers.push({p,g});
+      if(g.sd>0)svcMovers.push({p,g});
+    });
+    cold.forEach(({p,g})=>{
+      if(g.pd<0)pcMovers.push({p,g});
+      if(g.gd<0)gcMovers.push({p,g});
+      if(g.sd<0)svcMovers.push({p,g});
+    });
+    const hasUps=newP.length||pcMovers.length||gcMovers.length||svcMovers.length;
+    const subHead=(lbl)=>`<div style="font-size:.63rem;font-weight:700;color:var(--dim);padding:.4rem 1rem .1rem;text-transform:uppercase;letter-spacing:.04em">${lbl}</div>`;
+    const upsInner=
+      (newP.length?subHead('👥 New Partners')+newP.map(p=>feedItem(p,p.title,`${p.pc}PC · ${p.gc}GC · ${p.services} Svcs`,'color:var(--green)')).join(''):'')
+      +(pcMovers.length?subHead('👤 Personal Customers')+pcMovers.map(({p,g})=>feedItem(p,p.title,(g.pd>0?'+':'')+g.pd+' PC','color:'+(g.pd>0?'var(--green)':'var(--red)'))).join(''):'')
+      +(gcMovers.length?subHead('📊 Group Customers')+gcMovers.map(({p,g})=>feedItem(p,p.title,(g.gd>0?'+':'')+g.gd+' GC','color:'+(g.gd>0?'var(--green)':'var(--red)'))).join(''):'')
+      +(svcMovers.length?subHead('🔧 Group Services')+svcMovers.map(({p,g})=>feedItem(p,p.title,(g.sd>0?'+':'')+g.sd+' Svcs','color:'+(g.sd>0?'var(--green)':'var(--red)'))).join(''):'');
+    html+=buildSection('📈','Ups & Downs',newP.length+pcMovers.length+gcMovers.length+svcMovers.length,'upsdowns',
+      upsInner||'<div style="padding:.3rem 1rem;font-size:.7rem;color:var(--dim);font-style:italic">No changes today</div>',true);
+    html+=buildSection('⭐','Promoted',promoted.length,'promoted',
       promoted.map(({p,from,to})=>{
         const prev=compareData.partners.find(x=>x.name===p.name);
         const parts=[];
@@ -760,46 +834,35 @@ function buildFeed(){
         if(prev&&p.gc!==prev.gc)parts.push(`${prev.gc}→${p.gc} GC`);
         if(prev&&p.services!==prev.services)parts.push(`${prev.services}→${p.services} Svcs`);
         return feedItem(p,from+'→'+to,parts.join(' · '),'color:var(--amber)');
-      }).join(''))});
-    // Growing and declining near top when they have data
-    sections.push({order:hot.length>0?4:104, html:buildSection('📈','Ups & Downs — Growing',hot.length,'hot',
-      hot.map(({p,g})=>{
-        const parts=[];
-        if(g.pd>0)parts.push('+'+g.pd+'PC');
-        if(g.gd>0)parts.push('+'+g.gd+'GC');
-        if(g.sd>0)parts.push('+'+g.sd+' Svcs');
-        return feedItem(p,p.title,parts.join(' · '),'color:var(--green)');
-      }).join(''))});
-    sections.push({order:cold.length>0?5:105, html:buildSection('📉','Ups & Downs — Declining',cold.length,'cold',
-      cold.map(({p,g})=>{
-        const parts=[];
-        if(g.pd<0)parts.push(g.pd+'PC');
-        if(g.gd<0)parts.push(g.gd+'GC');
-        if(g.sd<0)parts.push(g.sd+' Svcs');
-        return feedItem(p,p.title,parts.join(' · '),'color:var(--red)');
-      }).join(''))});
-    sections.push({order:newP.length>0?6:106, html:buildSection('🔥','Ups & Downs — New Partners',newP.length,'new',
-      newP.map(p=>feedItem(p,p.title,`${p.pc}PC · ${p.gc}GC · ${p.services} Svcs`,'color:var(--green)')).join(''))});
+      }).join(''));
+  } else {
+    html+=buildSection('📈','Ups & Downs',0,'upsdowns','<div style="padding:.3rem 1rem;font-size:.7rem;color:var(--dim);font-style:italic">Select a comparison date to see changes</div>',false);
   }
-
-  sections.push({order:nearProm.length>0?7:107, html:buildSection('🎯','Close to Promotion',nearProm.length,'nearprom',
-    nearProm.map(({p,target,summary})=>feedItem(p,'→ '+target,summary,'color:var(--cyan)')).join(''))});
-
-  sections.push({order:nearDem.length>0?8:108, html:buildSection('⚠️','Demotion Risk',nearDem.length,'neardem',
+  html+=buildSection('🎯','Close to Promotion',nearProm.length,'nearprom',
+    nearProm.map(({p,target,summary})=>feedItem(p,'→ '+target,summary,'color:var(--cyan)')).join(''));
+  html+=buildSection('⚠️','Demotion Risk',nearDem.length,'neardem',
     nearDem.map(({p,rag,s})=>{
       const parts=[];
       if(rag.pcLevel)parts.push(`PC ${p.pc} ${rag.pcLevel==='red'?'🔴':'🟡'}`);
       if(rag.gcLevel)parts.push(`GC ${p.gc} ${rag.gcLevel==='red'?'🔴':'🟡'}`);
       return feedItem(p,s,parts.join(' · '),'color:var(--orange)');
     }).join('')+
-    `<div style="padding:.2rem 1rem;font-size:.65rem;color:var(--dim);display:flex;align-items:center;gap:.4rem">
-      <label style="cursor:pointer;display:flex;align-items:center;gap:.3rem">
-        <input type="checkbox" ${includeQDRisk?'checked':''} onchange="includeQDRisk=this.checked;buildFeed()"> Include QD risk alerts
-      </label>
-    </div>`)});
-
-  // Sort by order (sections with data float up) and render
-  sections.sort((a,b)=>a.order-b.order).forEach(s=>html+=s.html);
+    `<div style="padding:.2rem 1rem;font-size:.65rem;color:var(--dim);display:flex;align-items:center;gap:.4rem"><label style="cursor:pointer;display:flex;align-items:center;gap:.3rem"><input type="checkbox" ${includeQDRisk?'checked':''} onchange="includeQDRisk=this.checked;buildFeed()"> Include QD risk alerts</label></div>`);
+  html+=buildSection('🚨','Out of Status',oosPartners.length,'oos',
+    oosPartners.map(p=>{
+      const reqs=REQS[titleOnly(p).toUpperCase()]||[];const curr=currMetrics(p);
+      const gaps=reqs.filter(r=>curr[r.key]<r.v).length;
+      return feedItem(p,`${titleOnly(p)} → ${statusOnly(p)}`,`${gaps} gap${gaps===1?'':'s'} to fix`,`color:var(--red)`);
+    }).join(''));
+  if(compareData){
+    html+=buildSection('🚨','Became OOS',becameOOS.length,'becameoos',
+      becameOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--red)')).join(''));
+    const newlyClosed2=currentData.partners.filter(p=>{const g=grw(p);return g&&!g.isNew&&g.newlyClosed;});
+    html+=buildSection('🔴','Newly Closed',newlyClosed2.length,'newlyclosed',
+      newlyClosed2.map(p=>{const prev=compareData.partners.find(x=>x.name===p.name);return feedItem(p,p.title,'was '+(prev?.title||'?'),'color:#ef4444');}).join(''));
+    html+=buildSection('✅','Back in Status',fixedOOS.length,'fixedoos',
+      fixedOOS.map(({p,from,to})=>feedItem(p,from+'→'+to,'','color:var(--green)')).join(''));
+  }
 
   // Watchlist section
   html+=buildSection('👁','Watchlist',watched.length,'watchlist',
