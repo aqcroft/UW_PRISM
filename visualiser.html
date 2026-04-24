@@ -770,7 +770,7 @@ function layout(root){
 // ══ DRAW ══
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle='#2c2c2e';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle=isStale?'#3d2626':'#2c2c2e';ctx.fillRect(0,0,canvas.width,canvas.height);
   if(!nodes.length)return;
   ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
   ctx.strokeStyle='rgba(139,143,168,.55)';ctx.lineWidth=1.5;
