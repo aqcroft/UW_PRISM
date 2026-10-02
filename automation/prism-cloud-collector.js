@@ -17,8 +17,8 @@ async function main(){
   const date=today(), h=hour();
   const backend=makeBackend(String(process.env.PRISM_APPS_SCRIPT_URL||'').trim(),date,ATTEMPTS);
   const auth=decodeAuthBundle(String(process.env.PRISM_UW_STORAGE_STATE_B64||'').trim());
-  report({version:'1.0.0',startedAt:new Date().toISOString(),ukDate:date,ukTime:time(),forceCheck:FORCE,outcome:'started'});
-  log(`PRISM cloud collector v1.0.0 starting. UK date ${date}, time ${time()}.`);
+  report({version:'1.0.1',startedAt:new Date().toISOString(),ukDate:date,ukTime:time(),forceCheck:FORCE,outcome:'started'});
+  log(`PRISM cloud collector v1.0.1 starting. UK date ${date}, time ${time()}.`);
   if(!FORCE&&await backend.alreadyHas(date)){log('PRISM already contains today. Nothing to do.');report({outcome:'already_complete'});return;}
 
   const browser=await chromium.launch({headless:true});
