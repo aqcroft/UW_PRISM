@@ -1,0 +1,64 @@
+name: UW PRISM Daily Import
+
+run-name: UW PRISM - ${{ github.event_name }}
+
+on:
+  schedule:
+    # Mirrors the Tariff Hunter pattern: UK-local schedule, a few minutes past
+    # the hour to avoid the busiest GitHub Actions scheduling boundary.
+    - cron: "7 8,10,12,14,16 * * *"
+      timezone: "Europe/London"
+  workflow_dispatch:
+    inputs:
+      force_check:
+        description: "Open UW even if PRISM already has today's snapshot"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uw-prism-daily-import
+  cancel-in-progress: false
+
+jobs:
+  collect-prism:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      PRISM_APPS_SCRIPT_URL: ${{ secrets.PRISM_APPS_SCRIPT_URL }}
+      PRISM_UW_STORAGE_STATE_B64: ${{ secrets.PRISM_UW_STORAGE_STATE_B64 }}
+      PRISM_FORCE_CHECK: ${{ github.event_name == 'workflow_dispatch' && inputs.force_check }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install collector dependencies
+        working-directory: automation
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        working-directory: automation
+        run: npx playwright install --with-deps chromium
+
+      - name: Collect and publish PRISM snapshot
+        working-directory: automation
+        run: node prism-cloud-collector.js
+
+      - name: Upload PRISM run report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prism-run-${{ github.run_id }}
+          path: automation/run-report.json
+          if-no-files-found: ignore
+          retention-days: 30
