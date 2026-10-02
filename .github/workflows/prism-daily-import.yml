@@ -3,11 +3,6 @@ name: UW PRISM Daily Import
 run-name: UW PRISM - ${{ github.event_name }}
 
 on:
-  schedule:
-    # Mirrors the Tariff Hunter pattern: UK-local schedule, a few minutes past
-    # the hour to avoid the busiest GitHub Actions scheduling boundary.
-    - cron: "7 8,10,12,14,16 * * *"
-      timezone: "Europe/London"
   workflow_dispatch:
     inputs:
       force_check:
