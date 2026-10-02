@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - 2026-10-02
+
+- Compressed the UW login-state secret export for safer GitHub Actions setup.
+- Removed unnecessary IndexedDB export to reduce secret size.
+
 ## 1.0.0 - 2026-10-02
 
 - Moved PRISM daily collection from the local-laptop proof of concept to GitHub Actions cloud automation.
