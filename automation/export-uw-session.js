@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const zlib = require('zlib');
 
 const TEAM_URL = 'https://uw.co.uk/partner/portal/team';
 const PROFILE_DIR = path.resolve(process.env.PRISM_PROFILE_DIR || path.join(process.cwd(), 'chrome-profile'));
@@ -32,7 +33,7 @@ const B64_OUT = path.resolve(process.cwd(), 'PRISM_UW_STORAGE_STATE_B64.txt');
   await new Promise(resolve => rl.question('Press ENTER when the Team page is visible... ', resolve));
   rl.close();
 
-  const storageState = await context.storageState({ indexedDB: true });
+  const storageState = await context.storageState();
   const sessionStorageByOrigin = {};
 
   for (const p of context.pages()) {
@@ -58,7 +59,7 @@ const B64_OUT = path.resolve(process.cwd(), 'PRISM_UW_STORAGE_STATE_B64.txt');
   };
 
   const json = JSON.stringify(bundle);
-  const b64 = Buffer.from(json, 'utf8').toString('base64');
+  const b64 = zlib.gzipSync(Buffer.from(json, 'utf8')).toString('base64');
 
   fs.writeFileSync(JSON_OUT, JSON.stringify(bundle, null, 2), 'utf8');
   fs.writeFileSync(B64_OUT, b64, 'utf8');
