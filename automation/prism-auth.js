@@ -1,8 +1,15 @@
+const zlib = require('zlib');
 function decodeAuthBundle(b64) {
   if (!b64) throw new Error('Missing GitHub secret PRISM_UW_STORAGE_STATE_B64.');
+  let decoded;
+  try {
+    const bytes = Buffer.from(b64, 'base64');
+    try { decoded = zlib.gunzipSync(bytes).toString('utf8'); }
+    catch (_) { decoded = bytes.toString('utf8'); }
+  } catch (e) { throw new Error(`Could not decode UW login state: ${e.message}`); }
   let value;
-  try { value = JSON.parse(Buffer.from(b64, 'base64').toString('utf8')); }
-  catch (e) { throw new Error(`Could not decode UW login state: ${e.message}`); }
+  try { value = JSON.parse(decoded); }
+  catch (e) { throw new Error(`UW login state is not valid JSON: ${e.message}`); }
   if (value && value.storageState) return value;
   if (value && Array.isArray(value.cookies) && Array.isArray(value.origins)) {
     return { storageState: value, sessionStorageByOrigin: {} };
