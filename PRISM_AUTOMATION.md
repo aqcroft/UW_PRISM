@@ -1,6 +1,6 @@
 # PRISM cloud automation
 
-**Automation version:** 1.0.0
+**Automation version:** 1.0.1
 
 PRISM's daily team snapshot runs in GitHub Actions, so Adrian's laptop does not need to be switched on.
 
@@ -32,6 +32,11 @@ Copy the complete contents of that text file into the GitHub repository secret `
 If UW later signs the cloud session out, repeat the export and replace the GitHub secret.
 
 ## Version history
+
+### 1.0.1 - session export hardening
+
+- Compressed the private UW session export before storing it as a GitHub secret.
+- Kept the exported secret small enough for GitHub Actions whilst preserving cookies, local storage and current-page session storage.
 
 ### 1.0.0 - cloud automation
 
