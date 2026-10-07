@@ -768,7 +768,18 @@ function updateProgress(partner){
   const container=document.getElementById('statsContainer');
   const isOOSBadgeSelected=isOOS(partner)&&selectedProgressTarget===titleOnly(partner).toUpperCase();
   const prefix=isOOSBadgeSelected?`<div style="font-size:.63rem;color:var(--amber);margin-bottom:.3rem;font-weight:700">⚠️ Re-qualify here to restore status</div>`:'';
-  container.innerHTML=prefix+reqs.map(r=>{const met=curr[r.key]>=r.v;return `<div class="stat-row"><span style="color:var(--dim)">${r.l}</span><span class="stat-val ${met?'ok':'bad'}">${curr[r.key]}/${r.v}</span></div>`;}).join('');
+  let extra='';
+  const width=legWidthInfo(partner);
+  if(width){
+    extra+=`<div class="stat-row"><span style="color:var(--dim)">Direct legs</span><span class="stat-val" style="color:${width.colour}">${width.legs} · ${width.label}</span></div>`;
+  }
+  const move=movementInfo(partner);
+  if(move&&move.state==='inferred'&&move.open){
+    extra+=`<div class="stat-row"><span style="color:var(--dim)">Movement window</span><span class="stat-val" style="color:var(--cyan)">${move.remaining}d left · ${fmtOrdinalShort(move.firstSeen)}</span></div>`;
+  }else if(move&&move.state==='verify'&&move.open){
+    extra+=`<div class="stat-row"><span style="color:var(--dim)">Movement window</span><span class="stat-val" style="color:var(--amber)">⚠ verify start date</span></div>`;
+  }
+  container.innerHTML=prefix+reqs.map(r=>{const met=curr[r.key]>=r.v;return `<div class="stat-row"><span style="color:var(--dim)">${r.l}</span><span class="stat-val ${met?'ok':'bad'}">${curr[r.key]}/${r.v}</span></div>`;}).join('')+extra;
 }
 function selectProgressTarget(pos){
   selectedProgressTarget=pos;
@@ -921,6 +932,28 @@ function draw(){
     ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.font=`700 ${n.r>50?13:11}px Inter`;ctx.fillText(sname(n),n.x,n.y-9);
     ctx.font='600 9px Inter';ctx.fillText(`${n.pc}  ${cads(n)}  ${n.gc}`,n.x,n.y+5);
+
+    // Structural-width badge: direct legs only.
+    const width=legWidthInfo(n);
+    if(width){
+      const bx=n.x+n.r*.72,by=n.y-n.r*.72,br=n.r>50?14:12;
+      ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);
+      ctx.fillStyle=width.colour;ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1.5;ctx.stroke();
+      ctx.fillStyle='#fff';ctx.font=`800 ${n.r>50?9:8}px Inter`;ctx.fillText(width.legs+'L',bx,by+.5);
+    }
+
+    // Movement-window badge only for recent/inferred or needs-verification joins.
+    const move=movementInfo(n);
+    if(move&&move.open&&(move.state==='inferred'||move.state==='verify')){
+      const bx=n.x+n.r*.72,by=n.y+n.r*.72,br=n.r>50?14:12;
+      ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);
+      ctx.fillStyle=move.state==='verify'?'#f59e0b':'#06b6d4';ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1.5;ctx.stroke();
+      ctx.fillStyle='#fff';ctx.font=`800 ${n.r>50?8:7}px Inter`;
+      ctx.fillText(move.state==='verify'?'?':move.remaining+'d',bx,by+.5);
+    }
+
     if(compareData){
       const g=grw(n);if(g){const ix=n.x+n.r+14;
         if(g.isNew){ctx.font='12px Inter';ctx.fillText('🔥',ix,n.y);ctx.font='8px Inter';ctx.fillStyle='#22c55e';ctx.fillText('NEW',ix+12,n.y);ctx.fillStyle='#fff';}
@@ -936,6 +969,77 @@ function draw(){
 }
 
 function cads(p){const pi=currentData.partners.findIndex(x=>x.name===p.name);let c=0;for(let i=pi+1;i<currentData.partners.length;i++){const q=currentData.partners[i];if(q.level<=p.level)break;if(!q.closed)c++;}return c;}
+
+// Direct structural width: immediate active children only.
+function directLegCount(p){
+  const pi=currentData.partners.findIndex(x=>x.name===p.name);
+  if(pi<0)return 0;
+  let c=0;
+  for(let i=pi+1;i<currentData.partners.length;i++){
+    const q=currentData.partners[i];
+    if(q.level<=p.level)break;
+    if(q.level===p.level+1&&!q.closed)c++;
+  }
+  return c;
+}
+
+// Width rules agreed for the next major Stairway position.
+// Higher positions deliberately return null until their real width rules are agreed.
+function legWidthInfo(p){
+  const raw=(isOOS(p)?titleOnly(p):statusOnly(p)).toUpperCase();
+  const legs=directLegCount(p);
+  let target=null,greenMax=null,amberMax=null;
+  if(raw==='D'||raw.includes('QD')||raw.includes('FTL')){
+    target='TL';greenMax=3;amberMax=5;
+  }else if(raw==='TL'){
+    target='STL';greenMax=5;amberMax=7;
+  }else{
+    return null;
+  }
+  let state='neutral',colour='#6b7280',label='no direct legs yet';
+  if(legs>=1&&legs<=greenMax){state='good';colour='#22c55e';label='good width';}
+  else if(legs>greenMax&&legs<=amberMax){state='amber';colour='#f59e0b';label='getting wide';}
+  else if(legs>amberMax){state='over';colour='#ef4444';label='over width';}
+  return{legs,target,state,colour,label,greenMax,amberMax};
+}
+
+function dateDiffDays(a,b){
+  const ad=new Date(a+'T00:00:00Z'),bd=new Date(b+'T00:00:00Z');
+  return Math.round((ad-bd)/86400000);
+}
+function fmtOrdinalShort(dateStr){
+  const d=new Date(dateStr+'T00:00:00Z');
+  if(Number.isNaN(d.getTime()))return dateStr;
+  const n=d.getUTCDate(),mod100=n%100;
+  const suffix=(mod100>=11&&mod100<=13)?'th':({1:'st',2:'nd',3:'rd'}[n%10]||'th');
+  const mon=d.toLocaleDateString('en-GB',{month:'short',timeZone:'UTC'});
+  return n+suffix+' '+mon;
+}
+
+// Infer movement timing only where the PRISM history supports it.
+// 13 days is deliberately conservative because exact join time is not in the portal extract.
+function movementInfo(p){
+  if(!currentData||!allDates)return null;
+  const dates=Object.keys(allDates).filter(d=>d<=currentData.date).sort();
+  if(!dates.length)return null;
+  let firstIdx=-1;
+  for(let i=0;i<dates.length;i++){
+    if((allDates[dates[i]]||[]).some(x=>x.name===p.name)){firstIdx=i;break;}
+  }
+  if(firstIdx<0)return null;
+  const firstSeen=dates[firstIdx];
+  if(firstIdx===0){
+    return{state:'unknown',firstSeen,reason:'Already present when PRISM history begins'};
+  }
+  const prevDate=dates[firstIdx-1];
+  const gap=dateDiffDays(firstSeen,prevDate);
+  const elapsed=Math.max(0,dateDiffDays(currentData.date,firstSeen));
+  const remaining=Math.max(0,13-elapsed);
+  if(gap===1){
+    return{state:'inferred',firstSeen,elapsed,remaining,open:elapsed<=13};
+  }
+  return{state:'verify',firstSeen,elapsed,remaining,open:elapsed<=13,reason:'First appeared after a '+gap+'-day data gap'};
+}
 
 function ncol(p){
   if(p.closed)return'#2d3d2d';const s=statusOnly(p).toUpperCase();
@@ -1630,7 +1734,16 @@ function showTT(e,n){
     if(gaps.length){gapHtml=`<div class="tt-gaps">${gaps.map(r=>`<div class="tt-gap-row"><span style="color:var(--dim)">${r.l}</span><span style="color:var(--red)">${curr[r.key]}/${r.v}</span></div>`).join('')}</div>`;}
   }
   const svcsDelta=g&&!g.isNew&&g.sd!==0?`<span style="color:${g.sd>0?'#22c55e':'#ef4444'};font-size:.65rem"> ${g.sd>0?'+':''}${g.sd}</span>`:'';
-  tt.innerHTML=`<div class="tt-name">${dname(n)}</div><div class="tt-level">Level ${n.level}</div>${gh}${oos}<div class="tt-badge" style="background:${ncol(n)}">${n.title}</div><div class="tt-pigs"><div class="tt-pig"><div class="tt-pig-val">${n.pc}</div><div class="tt-pig-lbl">PC</div></div><div class="tt-pig"><div class="tt-pig-val">${ids}</div><div class="tt-pig-lbl">IDs</div></div><div class="tt-pig"><div class="tt-pig-val">${n.gc}</div><div class="tt-pig-lbl">GC</div></div><div class="tt-pig"><div class="tt-pig-val">${n.services}${svcsDelta}</div><div class="tt-pig-lbl">Svcs</div></div></div>${gapHtml}`;
+  const width=legWidthInfo(n);
+  const widthHtml=width?`<div style="font-size:.68rem;margin:.35rem 0;color:${width.colour};font-weight:700">Direct legs: ${width.legs} · ${width.label} for ${width.target}</div>`:'';
+  const move=movementInfo(n);
+  let moveHtml='';
+  if(move){
+    if(move.state==='inferred')moveHtml=`<div style="font-size:.66rem;color:${move.open?'#06b6d4':'var(--dim)'};margin:.25rem 0">First seen ${fmtOrdinalShort(move.firstSeen)} · inferred${move.open?' · '+move.remaining+' days left':''}</div>`;
+    else if(move.state==='verify')moveHtml=`<div style="font-size:.66rem;color:#f59e0b;margin:.25rem 0">⚠ First seen ${fmtOrdinalShort(move.firstSeen)} · start date needs verification</div>`;
+    else moveHtml=`<div style="font-size:.66rem;color:var(--dim);margin:.25rem 0">Start date unknown · already present when PRISM history begins</div>`;
+  }
+  tt.innerHTML=`<div class="tt-name">${dname(n)}</div><div class="tt-level">Level ${n.level}</div>${gh}${oos}<div class="tt-badge" style="background:${ncol(n)}">${n.title}</div>${widthHtml}${moveHtml}<div class="tt-pigs"><div class="tt-pig"><div class="tt-pig-val">${n.pc}</div><div class="tt-pig-lbl">PC</div></div><div class="tt-pig"><div class="tt-pig-val">${ids}</div><div class="tt-pig-lbl">IDs</div></div><div class="tt-pig"><div class="tt-pig-val">${n.gc}</div><div class="tt-pig-lbl">GC</div></div><div class="tt-pig"><div class="tt-pig-val">${n.services}${svcsDelta}</div><div class="tt-pig-lbl">Svcs</div></div></div>${gapHtml}`;
   const r=canvas.getBoundingClientRect();
   tt.style.left=Math.min(e.clientX-r.left+16,canvas.width-270)+'px';
   tt.style.top=Math.min(e.clientY-r.top+16,canvas.height-200)+'px';
