@@ -582,10 +582,25 @@ function hideLoading(){
 }
 function completeLoading(){
   stopLoadingProgress();
-  loadingProgress=100;
-  renderLoadingProgress();
-  updateLoading('PRISM ready','Structure loaded successfully');
-  setTimeout(hideLoading,500);
+  const start=Math.max(0,Math.min(99,loadingProgress));
+  const duration=900;
+  const started=performance.now();
+  const tick=now=>{
+    const t=Math.min(1,(now-started)/duration);
+    // Ease-out: visibly accelerates through the remaining numbers, then settles at 100.
+    const eased=1-Math.pow(1-t,2.4);
+    loadingProgress=start+(100-start)*eased;
+    renderLoadingProgress();
+    if(t<1){
+      requestAnimationFrame(tick);
+    }else{
+      loadingProgress=100;
+      renderLoadingProgress();
+      updateLoading('PRISM ready','Structure loaded successfully');
+      setTimeout(hideLoading,450);
+    }
+  };
+  requestAnimationFrame(tick);
 }
 
 async function fetchPrismJsonWithRetry(url,attempts=4){
@@ -621,7 +636,7 @@ async function loadFromSheet(){
   try{
     const j=await fetchPrismJsonWithRetry(url+'?all=1');
     if(j.ok&&j.data&&j.data.length){
-      updateLoading('Building the structure...','Organising partners and daily changes',91);
+      updateLoading('Building the structure...','Organising partners and daily changes');
       const today=new Date().toISOString().split('T')[0];
       const getDate=row=>{
         const candidates=[row.date,row.snapshot_date,row.Date,row.imported_at];
@@ -642,7 +657,7 @@ async function loadFromSheet(){
         return;
       }
       const dates=Object.keys(allDates).sort().reverse();
-      updateLoading('Preparing the visualiser...','Almost there',97);
+      updateLoading('Preparing the visualiser...','Almost there');
       populateDates(dates);useLatest();
       document.getElementById('emptyState').style.display='none';
       requestAnimationFrame(()=>completeLoading());
@@ -936,7 +951,7 @@ function draw(){
     // Structural-width badge: direct legs only.
     const width=legWidthInfo(n);
     if(width&&width.show){
-      const label=(width.state==='over'?'⚠ ':'')+width.legs+'L';
+      const label=(width.state==='over'?'⚠ ':'')+width.legs+' legs';
       ctx.font=`800 ${n.r>50?9:8}px Inter`;
       const tw=ctx.measureText(label).width;
       const ph=n.r>50?18:16,pw=Math.max(n.r>50?30:27,tw+12);
