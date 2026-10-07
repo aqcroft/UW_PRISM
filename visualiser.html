@@ -506,13 +506,36 @@ function saveLocal(){
 }
 
 // ══ DATA LOADING ══
+async function fetchPrismJsonWithRetry(url,attempts=4){
+  let lastErr;
+  for(let attempt=1;attempt<=attempts;attempt++){
+    try{
+      const sep=url.includes('?')?'&':'?';
+      const r=await fetch(url+sep+'_prism_retry='+Date.now(),{cache:'no-store'});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const text=await r.text();
+      let j;
+      try{j=JSON.parse(text);}
+      catch(_){throw new Error('Google returned a non-JSON response');}
+      return j;
+    }catch(err){
+      lastErr=err;
+      if(attempt<attempts){
+        document.getElementById('viewingLabel').textContent='⏳ Google response failed - retrying '+(attempt+1)+'/'+attempts+'...';
+        await new Promise(resolve=>setTimeout(resolve,2000));
+      }
+    }
+  }
+  throw lastErr||new Error('PRISM data request failed');
+}
+
 async function loadFromSheet(){
   const url=document.getElementById('sheetUrl').value.trim();
   if(!url){alert('Please enter your Apps Script URL.');return;}
   saveUrl();
   document.getElementById('viewingLabel').textContent='⏳ Loading...';
   try{
-    const r=await fetch(url+'?all=1');const j=await r.json();
+    const j=await fetchPrismJsonWithRetry(url+'?all=1');
     if(j.ok&&j.data&&j.data.length){
       const today=new Date().toISOString().split('T')[0];
       const getDate=row=>{
