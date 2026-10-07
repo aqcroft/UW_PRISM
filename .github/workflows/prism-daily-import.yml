@@ -3,6 +3,12 @@ name: UW PRISM Daily Import
 run-name: UW PRISM - ${{ github.event_name }}
 
 on:
+  # GitHub cron runs in UTC. These candidate times cover both GMT and BST.
+  # A UK-local gate below allows only 07:00, 08:00, 11:00, 14:00 and 17:00
+  # Europe/London, so the schedule stays correct across clock changes.
+  schedule:
+    - cron: "0 6,7,8,10,11,13,14,16,17 * * *"
+
   workflow_dispatch:
     inputs:
       force_check:
@@ -29,28 +35,76 @@ jobs:
       PRISM_FORCE_CHECK: ${{ github.event_name == 'workflow_dispatch' && inputs.force_check }}
 
     steps:
+      - name: Check UK schedule slot
+        id: slot
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          UK_HOUR="$(TZ=Europe/London date +%H)"
+          case "$UK_HOUR" in
+            07|08|11|14|17)
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              echo "Running scheduled PRISM check at ${UK_HOUR}:00 UK time."
+              ;;
+            *)
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              echo "Candidate UTC trigger is not a PRISM UK-time slot. Exiting."
+              ;;
+          esac
+
+      - name: Check whether today's PRISM snapshot already exists
+        id: snapshot
+        if: steps.slot.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_check }}" = "true" ]; then
+            echo "run_collector=true" >> "$GITHUB_OUTPUT"
+            echo "Manual force check requested."
+            exit 0
+          fi
+
+          TODAY="$(TZ=Europe/London date +%F)"
+          RESPONSE="$(curl -fsSL "$PRISM_APPS_SCRIPT_URL")"
+
+          if echo "$RESPONSE" | jq -e --arg d "$TODAY" '.ok == true and (.dates | index($d) != null)' >/dev/null; then
+            echo "run_collector=false" >> "$GITHUB_OUTPUT"
+            echo "PRISM already contains the verified snapshot for $TODAY. Nothing else to do."
+          else
+            echo "run_collector=true" >> "$GITHUB_OUTPUT"
+            echo "No verified PRISM snapshot found for $TODAY. Continuing to UW."
+          fi
+
       - name: Check out repository
+        if: steps.snapshot.outputs.run_collector == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node
+        if: steps.snapshot.outputs.run_collector == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install collector dependencies
+        if: steps.snapshot.outputs.run_collector == 'true'
         working-directory: automation
         run: npm install --no-audit --no-fund
 
       - name: Install Chromium
+        if: steps.snapshot.outputs.run_collector == 'true'
         working-directory: automation
         run: npx playwright install --with-deps chromium
 
       - name: Collect and publish PRISM snapshot
+        if: steps.snapshot.outputs.run_collector == 'true'
         working-directory: automation
         run: node prism-cloud-collector.js
 
       - name: Upload PRISM run report
-        if: always()
+        if: always() && steps.snapshot.outputs.run_collector == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: prism-run-${{ github.run_id }}
