@@ -20,9 +20,10 @@
     .sidebar{width:300px;min-width:180px;max-width:520px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:50;flex-shrink:0;}
     .sidebar.hidden{transform:translateX(-320px);margin-right:-300px;}
     .sb-toggle{position:absolute;right:-36px;top:50%;transform:translateY(-50%);width:36px;height:80px;background:var(--surface);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;z-index:51;}
-    .sb-header{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);flex-shrink:0;}
-    .sb-title{font-size:1rem;font-weight:800;margin-bottom:.2rem;}
+    .sb-header{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
+    .sb-title{font-size:1rem;font-weight:800;margin-bottom:.2rem;padding-right:5.5rem;}
     .sb-sub{font-size:.7rem;color:var(--dim);line-height:1.4;}
+    .team-triumph-mini{position:absolute;right:1.1rem;top:.8rem;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:.67rem;color:#38bfa4;letter-spacing:-.02em;opacity:.9;white-space:nowrap;}
     .status-badge{margin-top:.5rem;padding:.45rem .6rem;border-radius:7px;font-size:.7rem;font-weight:700;display:none;}
     .status-badge.out{background:rgba(239,68,68,.15);border:1px solid var(--red);color:var(--red);display:block;}
     .status-badge.ok{background:rgba(34,197,94,.15);border:1px solid var(--green);color:var(--green);display:block;}
@@ -191,14 +192,19 @@
     /* Loading state */
     .loading-overlay{position:absolute;inset:0;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center;z-index:45;padding:1.5rem;}
     .loading-overlay.show{display:flex;}
-    .loading-card{width:min(420px,90%);text-align:center;padding:1.6rem 1.4rem;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);}
-    .loading-mark{font-size:2rem;margin-bottom:.45rem;}
-    .loading-title{font-size:1rem;font-weight:800;margin-bottom:.25rem;}
-    .loading-text{font-size:.8rem;color:var(--text);margin-top:.85rem;font-weight:600;}
+    .loading-card{width:min(430px,90%);text-align:center;padding:1.75rem 1.5rem 1.55rem;position:relative;overflow:hidden;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.45);isolation:isolate;}
+    .loading-card::before{content:"";position:absolute;inset:-70%;z-index:0;background:conic-gradient(from 0deg,transparent 0deg 300deg,#7c3aed 316deg,#06b6d4 337deg,#22c55e 354deg,transparent 360deg);animation:prismSnake 5s linear infinite;}
+    .loading-card::after{content:"";position:absolute;inset:2px;z-index:0;background:var(--surface);border-radius:14px;border:1px solid rgba(255,255,255,.03);}
+    .loading-card>*{position:relative;z-index:1;}
+    .loading-brand{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:.82rem;color:#38bfa4;margin-bottom:.45rem;}
+    .loading-mark{font-size:2rem;margin-bottom:.35rem;}
+    .loading-title{font-size:1.05rem;font-weight:800;margin-bottom:.18rem;}
+    .loading-acronym{font-size:.65rem;color:var(--dim);letter-spacing:.02em;margin-bottom:1rem;}
+    .loading-percent{font-size:2rem;line-height:1;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;margin:.25rem 0 .65rem;}
+    .loading-text{font-size:.8rem;color:var(--text);font-weight:600;}
     .loading-sub{font-size:.68rem;color:var(--dim);margin-top:.35rem;min-height:1em;}
-    .loading-track{height:5px;background:var(--bg);border:1px solid var(--border);border-radius:999px;overflow:hidden;margin-top:1rem;position:relative;}
-    .loading-bar{position:absolute;top:-1px;bottom:-1px;width:42%;border-radius:999px;background:linear-gradient(90deg,#7c3aed,#06b6d4,#22c55e);animation:prismLoad 1.25s ease-in-out infinite;}
-    @keyframes prismLoad{0%{left:-42%}50%{left:35%}100%{left:100%}}
+    @keyframes prismSnake{to{transform:rotate(360deg)}}
+    @media (prefers-reduced-motion:reduce){.loading-card::before{animation-duration:12s;}}
   </style>
 </head>
 <body>
@@ -209,6 +215,7 @@
     <div class="sb-toggle" onclick="toggleSidebar()" id="sbToggle">◀</div>
 
     <div class="sb-header">
+      <div class="team-triumph-mini">Team Triumph</div>
       <div class="sb-title">🔷 PRISM</div>
       <div class="sb-sub" id="viewingLabel">No data loaded</div>
       <div class="status-badge" id="statusBadge"></div>
@@ -263,10 +270,12 @@
 
     <div class="loading-overlay" id="loadingOverlay" aria-live="polite">
       <div class="loading-card">
+        <div class="loading-brand">Team Triumph</div>
         <div class="loading-mark">🔷</div>
-        <div class="loading-title">Team Triumph PRISM Visualiser</div>
+        <div class="loading-title">PRISM Visualiser</div>
+        <div class="loading-acronym">Passive Residual Income Structure Map</div>
+        <div class="loading-percent" id="loadingPercent">0%</div>
         <div class="loading-text" id="loadingText">Loading team structure...</div>
-        <div class="loading-track"><div class="loading-bar"></div></div>
         <div class="loading-sub" id="loadingSub">Fetching the latest PRISM data</div>
       </div>
     </div>
@@ -528,21 +537,55 @@ function saveLocal(){
 }
 
 // ══ DATA LOADING ══
+let loadingProgress=0,loadingProgressTimer=null;
+
+function renderLoadingProgress(){
+  const p=document.getElementById('loadingPercent');
+  if(p)p.textContent=Math.max(0,Math.min(100,Math.round(loadingProgress)))+'%';
+}
+function setLoadingProgress(value){
+  loadingProgress=Math.max(loadingProgress,Math.min(100,value));
+  renderLoadingProgress();
+}
+function startLoadingProgress(){
+  if(loadingProgressTimer)clearInterval(loadingProgressTimer);
+  loadingProgress=4;
+  renderLoadingProgress();
+  loadingProgressTimer=setInterval(()=>{
+    if(loadingProgress>=88)return;
+    const step=loadingProgress<35?2:loadingProgress<65?1.2:.6;
+    loadingProgress=Math.min(88,loadingProgress+step);
+    renderLoadingProgress();
+  },700);
+}
+function stopLoadingProgress(){
+  if(loadingProgressTimer){clearInterval(loadingProgressTimer);loadingProgressTimer=null;}
+}
 function showLoading(text,sub){
   const el=document.getElementById('loadingOverlay');
   if(!el)return;
   document.getElementById('loadingText').textContent=text||'Loading team structure...';
   document.getElementById('loadingSub').textContent=sub||'Fetching the latest PRISM data';
+  startLoadingProgress();
   el.classList.add('show');
 }
-function updateLoading(text,sub){
+function updateLoading(text,sub,progress){
   const t=document.getElementById('loadingText'),s=document.getElementById('loadingSub');
   if(t&&text)t.textContent=text;
   if(s&&sub!==undefined)s.textContent=sub;
+  if(typeof progress==='number')setLoadingProgress(progress);
 }
 function hideLoading(){
+  stopLoadingProgress();
   const el=document.getElementById('loadingOverlay');
   if(el)el.classList.remove('show');
+}
+function completeLoading(){
+  stopLoadingProgress();
+  loadingProgress=100;
+  renderLoadingProgress();
+  updateLoading('PRISM ready','Structure loaded successfully');
+  setTimeout(hideLoading,500);
 }
 
 async function fetchPrismJsonWithRetry(url,attempts=4){
@@ -561,7 +604,7 @@ async function fetchPrismJsonWithRetry(url,attempts=4){
       lastErr=err;
       if(attempt<attempts){
         document.getElementById('viewingLabel').textContent='⏳ Google response failed - retrying '+(attempt+1)+'/'+attempts+'...';
-        updateLoading('Still loading PRISM...','Google response failed - retrying '+(attempt+1)+' of '+attempts);
+        updateLoading('Still loading PRISM...','Google response failed - retrying '+(attempt+1)+' of '+attempts,Math.min(86,52+attempt*8));
         await new Promise(resolve=>setTimeout(resolve,2000));
       }
     }
@@ -578,7 +621,7 @@ async function loadFromSheet(){
   try{
     const j=await fetchPrismJsonWithRetry(url+'?all=1');
     if(j.ok&&j.data&&j.data.length){
-      updateLoading('Building the structure...','Organising partners and daily changes');
+      updateLoading('Building the structure...','Organising partners and daily changes',91);
       const today=new Date().toISOString().split('T')[0];
       const getDate=row=>{
         const candidates=[row.date,row.snapshot_date,row.Date,row.imported_at];
@@ -599,10 +642,10 @@ async function loadFromSheet(){
         return;
       }
       const dates=Object.keys(allDates).sort().reverse();
-      updateLoading('Preparing the visualiser...','Almost there');
+      updateLoading('Preparing the visualiser...','Almost there',97);
       populateDates(dates);useLatest();
       document.getElementById('emptyState').style.display='none';
-      requestAnimationFrame(()=>setTimeout(hideLoading,180));
+      requestAnimationFrame(()=>completeLoading());
     } else {
       hideLoading();
       document.getElementById('viewingLabel').textContent='⚠️ No data found — check URL.';
