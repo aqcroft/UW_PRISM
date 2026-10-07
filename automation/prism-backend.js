@@ -21,8 +21,8 @@ function makeBackend(url, today, attemptTimes) {
       const j = await getJson();
       return !!(j && j.ok && Array.isArray(j.dates) && j.dates.includes(date));
     },
-    async snapshot(parsed) {
-      const j = await post({ date: parsed.date, partners: parsed.partners, claimedCount: parsed.claimed, overwrite: true });
+    async snapshot(parsed, checkedAt = '') {
+      const j = await post({ date: parsed.date, partners: parsed.partners, claimedCount: parsed.claimed, overwrite: true, checkedAt });
       if (!j.ok) throw new Error(`PRISM backend rejected import: ${j.error || 'Unknown error'}`);
       if (j.verified !== true) throw new Error('PRISM backend did not confirm post-write verification.');
       if (Number(j.saved) !== Number(parsed.claimed)) {
@@ -33,7 +33,8 @@ function makeBackend(url, today, attemptTimes) {
     async failure(reason, extra = {}) {
       const j = await post({
         action: 'failureNotice', date: today, reason, attempts: attemptTimes,
-        latestUwDate: extra.latestUwDate || '', lastError: extra.lastError || ''
+        latestUwDate: extra.latestUwDate || '', lastError: extra.lastError || '',
+        stage: extra.stage || '', checkedAt: extra.checkedAt || ''
       });
       if (!j.ok) throw new Error(`Failure notice rejected: ${j.error || 'Unknown error'}`);
       return j.notification || {};
