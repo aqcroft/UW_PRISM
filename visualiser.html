@@ -935,12 +935,22 @@ function draw(){
 
     // Structural-width badge: direct legs only.
     const width=legWidthInfo(n);
-    if(width){
-      const bx=n.x+n.r*.72,by=n.y-n.r*.72,br=n.r>50?14:12;
-      ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);
+    if(width&&width.show){
+      const label=(width.state==='over'?'⚠ ':'')+width.legs+'L';
+      ctx.font=`800 ${n.r>50?9:8}px Inter`;
+      const tw=ctx.measureText(label).width;
+      const ph=n.r>50?18:16,pw=Math.max(n.r>50?30:27,tw+12);
+      const bx=n.x+n.r*.72,by=n.y-n.r*.72;
+      const x=bx-pw/2,y=by-ph/2,r=ph/2;
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);ctx.lineTo(x+pw-r,y);ctx.quadraticCurveTo(x+pw,y,x+pw,y+r);
+      ctx.lineTo(x+pw,y+ph-r);ctx.quadraticCurveTo(x+pw,y+ph,x+pw-r,y+ph);
+      ctx.lineTo(x+r,y+ph);ctx.quadraticCurveTo(x,y+ph,x,y+ph-r);
+      ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
       ctx.fillStyle=width.colour;ctx.fill();
-      ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1.5;ctx.stroke();
-      ctx.fillStyle='#fff';ctx.font=`800 ${n.r>50?9:8}px Inter`;ctx.fillText(width.legs+'L',bx,by+.5);
+      ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1.25;ctx.stroke();
+      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(label,bx,by+.5);
     }
 
     // Movement-window badge only for recent/inferred or needs-verification joins.
@@ -978,7 +988,7 @@ function directLegCount(p){
   for(let i=pi+1;i<currentData.partners.length;i++){
     const q=currentData.partners[i];
     if(q.level<=p.level)break;
-    if(q.level===p.level+1&&!q.closed)c++;
+    if(q.level===p.level+1)c++;
   }
   return c;
 }
@@ -986,21 +996,12 @@ function directLegCount(p){
 // Width rules agreed for the next major Stairway position.
 // Higher positions deliberately return null until their real width rules are agreed.
 function legWidthInfo(p){
-  const raw=(isOOS(p)?titleOnly(p):statusOnly(p)).toUpperCase();
   const legs=directLegCount(p);
-  let target=null,greenMax=null,amberMax=null;
-  if(raw==='D'||raw.includes('QD')||raw.includes('FTL')){
-    target='TL';greenMax=3;amberMax=5;
-  }else if(raw==='TL'){
-    target='STL';greenMax=5;amberMax=7;
-  }else{
-    return null;
-  }
-  let state='neutral',colour='#6b7280',label='no direct legs yet';
-  if(legs>=1&&legs<=greenMax){state='good';colour='#22c55e';label='good width';}
-  else if(legs>greenMax&&legs<=amberMax){state='amber';colour='#f59e0b';label='getting wide';}
-  else if(legs>amberMax){state='over';colour='#ef4444';label='over width';}
-  return{legs,target,state,colour,label,greenMax,amberMax};
+  let state='quiet',colour='#6b7280',label='building width';
+  if(legs===3){state='good';colour='#22c55e';label='good width';}
+  else if(legs===4||legs===5){state='amber';colour='#f59e0b';label='getting wide';}
+  else if(legs>=6){state='over';colour='#ef4444';label='wider than needed';}
+  return{legs,state,colour,label,show:legs>=3};
 }
 
 function dateDiffDays(a,b){
@@ -1735,7 +1736,7 @@ function showTT(e,n){
   }
   const svcsDelta=g&&!g.isNew&&g.sd!==0?`<span style="color:${g.sd>0?'#22c55e':'#ef4444'};font-size:.65rem"> ${g.sd>0?'+':''}${g.sd}</span>`:'';
   const width=legWidthInfo(n);
-  const widthHtml=width?`<div style="font-size:.68rem;margin:.35rem 0;color:${width.colour};font-weight:700">Direct legs: ${width.legs} · ${width.label} for ${width.target}</div>`:'';
+  const widthHtml=width?`<div style="font-size:.68rem;margin:.35rem 0;color:${width.colour};font-weight:700">Direct legs: ${width.legs} · ${width.label}</div>`:'';
   const move=movementInfo(n);
   let moveHtml='';
   if(move){
