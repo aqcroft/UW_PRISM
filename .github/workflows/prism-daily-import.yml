@@ -3,11 +3,12 @@ name: UW PRISM Daily Import
 run-name: UW PRISM - ${{ github.event_name }}
 
 on:
-  # GitHub cron runs in UTC. These candidate times cover both GMT and BST.
-  # A UK-local gate below allows only 07:00, 08:00, 11:00, 14:00 and 17:00
-  # Europe/London, so the schedule stays correct across clock changes.
+  # Run slightly away from the top of the hour because GitHub documents
+  # heavier scheduled-workflow load at :00. Timezone keeps this correct
+  # automatically across GMT/BST.
   schedule:
-    - cron: "0 6,7,8,10,11,13,14,16,17 * * *"
+    - cron: "7 7,8,11,14,17 * * *"
+      timezone: "Europe/London"
 
   workflow_dispatch:
     inputs:
@@ -48,7 +49,7 @@ jobs:
           case "$UK_HOUR" in
             07|08|11|14|17)
               echo "run=true" >> "$GITHUB_OUTPUT"
-              echo "Running scheduled PRISM check at ${UK_HOUR}:00 UK time."
+              echo "Running scheduled PRISM check in the ${UK_HOUR}:00 UK slot."
               ;;
             *)
               echo "run=false" >> "$GITHUB_OUTPUT"
