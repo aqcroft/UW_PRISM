@@ -968,15 +968,25 @@ function draw(){
       ctx.fillText(label,bx,by+.5);
     }
 
-    // Movement-window badge only for recent/inferred or needs-verification joins.
+    // Movement-window message: explicit wording rather than an ambiguous numbered circle.
     const move=movementInfo(n);
     if(move&&move.open&&(move.state==='inferred'||move.state==='verify')){
-      const bx=n.x+n.r*.72,by=n.y+n.r*.72,br=n.r>50?14:12;
-      ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);
+      const dayWord=move.remaining===1?'day':'days';
+      const label=(move.state==='verify'?'⚠ ':'')+move.remaining+' '+dayWord+' left to move';
+      ctx.font=`800 ${n.r>50?9:8}px Inter`;
+      const tw=ctx.measureText(label).width;
+      const ph=n.r>50?22:20,pw=tw+16;
+      const bx=n.x+n.r*.72,by=n.y+n.r*.72;
+      const x=bx-pw/2,y=by-ph/2,rr=6;
+      ctx.beginPath();
+      ctx.moveTo(x+rr,y);ctx.lineTo(x+pw-rr,y);ctx.quadraticCurveTo(x+pw,y,x+pw,y+rr);
+      ctx.lineTo(x+pw,y+ph-rr);ctx.quadraticCurveTo(x+pw,y+ph,x+pw-rr,y+ph);
+      ctx.lineTo(x+rr,y+ph);ctx.quadraticCurveTo(x,y+ph,x,y+ph-rr);
+      ctx.lineTo(x,y+rr);ctx.quadraticCurveTo(x,y,x+rr,y);ctx.closePath();
       ctx.fillStyle=move.state==='verify'?'#f59e0b':'#06b6d4';ctx.fill();
-      ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1.5;ctx.stroke();
-      ctx.fillStyle='#fff';ctx.font=`800 ${n.r>50?8:7}px Inter`;
-      ctx.fillText(move.state==='verify'?'?':move.remaining+'d',bx,by+.5);
+      ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1.25;ctx.stroke();
+      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(label,bx,by+.5);
     }
 
     if(compareData){
