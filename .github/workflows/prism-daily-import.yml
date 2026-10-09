@@ -3,11 +3,11 @@ name: UW PRISM Daily Import
 run-name: UW PRISM - ${{ github.event_name }}
 
 on:
-  # Run slightly away from the top of the hour because GitHub documents
-  # heavier scheduled-workflow load at :00. Timezone keeps this correct
-  # automatically across GMT/BST.
+  # Cloud scheduling v1.2.0: three UK-local opportunities only.
+  # Later runs inspect the saved snapshot first; they skip UW entirely once
+  # today has been imported and verified. Do not reject delayed GitHub runs.
   schedule:
-    - cron: "7 7,8,11,14,17 * * *"
+    - cron: "17 7,8,13 * * *"
       timezone: "Europe/London"
 
   workflow_dispatch:
@@ -36,30 +36,8 @@ jobs:
       PRISM_FORCE_CHECK: ${{ github.event_name == 'workflow_dispatch' && inputs.force_check }}
 
     steps:
-      - name: Check UK schedule slot
-        id: slot
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          UK_HOUR="$(TZ=Europe/London date +%H)"
-          case "$UK_HOUR" in
-            07|08|11|14|17)
-              echo "run=true" >> "$GITHUB_OUTPUT"
-              echo "Running scheduled PRISM check in the ${UK_HOUR}:00 UK slot."
-              ;;
-            *)
-              echo "run=false" >> "$GITHUB_OUTPUT"
-              echo "Candidate UTC trigger is not a PRISM UK-time slot. Exiting."
-              ;;
-          esac
-
       - name: Check whether today's PRISM snapshot already exists
         id: snapshot
-        if: steps.slot.outputs.run == 'true'
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_check }}" = "true" ]; then
