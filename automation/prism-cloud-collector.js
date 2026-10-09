@@ -1,3 +1,4 @@
+// PRISM cloud collector v1.2.0 - 7:17/8:17/13:17 UK attempts; final failure notice from 13:00.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +8,7 @@ const { makeBackend } = require('./prism-backend');
 const pageTools = require('./prism-page');
 
 const TEAM_URL='https://uw.co.uk/partner/portal/team';
-const ATTEMPTS='07:00, 08:00, 11:00, 14:00, 17:00';
+const ATTEMPTS='07:17, 08:17, 13:17';
 const FORCE=/^(1|true|yes)$/i.test(String(process.env.PRISM_FORCE_CHECK||''));
 const REPORT=path.join(__dirname,'run-report.json');
 function log(s){console.log(`[${new Date().toISOString()}] ${s}`);}
@@ -17,8 +18,8 @@ async function main(){
   const date=today(), h=hour();
   const backend=makeBackend(String(process.env.PRISM_APPS_SCRIPT_URL||'').trim(),date,ATTEMPTS);
   const auth=decodeAuthBundle(String(process.env.PRISM_UW_STORAGE_STATE_B64||'').trim());
-  report({version:'1.1.0',startedAt:new Date().toISOString(),ukDate:date,ukTime:time(),forceCheck:FORCE,outcome:'started'});
-  log(`PRISM cloud collector v1.1.0 starting. UK date ${date}, time ${time()}.`);
+  report({version:'1.2.0',startedAt:new Date().toISOString(),ukDate:date,ukTime:time(),forceCheck:FORCE,outcome:'started'});
+  log(`PRISM cloud collector v1.2.0 starting. UK date ${date}, time ${time()}.`);
   if(!FORCE&&await backend.alreadyHas(date)){log('PRISM already contains today. Nothing to do.');report({outcome:'already_complete'});return;}
 
   const browser=await chromium.launch({headless:true});
@@ -40,11 +41,11 @@ async function main(){
     log(`UW page reports ${i.claimed} partners, showing ${i.showing}, data from ${i.date}.`);
     if(i.date!==date){
       if(h===7){
-        const notification=await backend.failure('stale_uw_date',{latestUwDate:i.date,stage:'morning',checkedAt:'07:00'});
-        log(`07:00 check: UW data still dated ${i.date}. Morning warning sent.`);
+        const notification=await backend.failure('stale_uw_date',{latestUwDate:i.date,stage:'morning',checkedAt:time()});
+        log(`Morning check: UW data still dated ${i.date}. Morning warning sent.`);
         report({outcome:'stale_morning',latestUwDate:i.date,notification});
-      }else if(h>=17){
-        const notification=await backend.failure('stale_uw_date',{latestUwDate:i.date,stage:'final',checkedAt:'17:00'});
+      }else if(h>=13){
+        const notification=await backend.failure('stale_uw_date',{latestUwDate:i.date,stage:'final',checkedAt:time()});
         log(`Final check: UW data still dated ${i.date}.`);
         report({outcome:'stale_final',latestUwDate:i.date,notification});
       }else{
@@ -66,7 +67,7 @@ async function main(){
     await context.close();
   }catch(err){
     const msg=String(err&&err.message||err), r={outcome:'error',error:msg};
-    if(h>=17&&msg!=='UW login needs refreshing.'){
+    if(h>=13&&msg!=='UW login needs refreshing.'){
       try{r.notification=await backend.failure('technical_error',{lastError:msg});}catch(e){r.notificationError=String(e&&e.message||e);}
     }
     report(r); throw err;
