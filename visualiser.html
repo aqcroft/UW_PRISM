@@ -41,6 +41,10 @@
     .nb:hover{color:var(--text);}
     .nb.danger{border-color:var(--red);color:var(--red);}
     .nb.active{background:rgba(124,58,237,.2);border-color:#7c3aed;color:#a78bfa;}
+    .intelligence-note{margin:.55rem .7rem;padding:.55rem .65rem;border:1px solid rgba(251,191,36,.35);border-radius:6px;background:rgba(251,191,36,.07);color:#f4d98a;font-size:.65rem;line-height:1.45;}
+    .intel-card{margin:.4rem .55rem;padding:.6rem .65rem;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-size:.7rem;}
+    .intel-card-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.35rem;}
+    .intel-gaps{color:var(--dim);line-height:1.5;}
 
     /* Progress section */
     .progress-section{padding:.7rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -232,6 +236,9 @@
     </div>
 
     <div class="nav-bar">
+      <button class="nb" id="briefingTab" onclick="switchFeedMode('briefing')">Briefing</button>
+      <button class="nb" id="activityTab" onclick="switchFeedMode('activity')">Activity</button>
+      <button class="nb" id="promotionsTab" onclick="switchFeedMode('promotions')">Promotions</button>
       <button class="nb" onclick="goBack()">↩ Back</button>
       <button class="nb" onclick="goHome()">🏠 Top</button>
       <button class="nb" onclick="loadFromSheet()">🔄</button>
@@ -373,6 +380,8 @@
   </div>
 </div>
 
+<script src="version.js"></script>
+<script src="intelligence.js"></script>
 <script>
 // ══ CONSTANTS ══
 const COLORS={NNL:'#a855f7',NGL:'#fbbf24',SGL:'#94a3b8',GL:'#ef4444',STL:'#3b82f6',TL:'#22c55e',FTL:'#f97316',SQD:'#84cc16',QDS:'#06b6d4',QD:'#7c3aed',D:'#c084fc'};
@@ -425,6 +434,7 @@ let ctxTarget=null,oosMode=false,selectedProgressTarget=null;
 let pendingRemoveWatch=null;
 let touchTimer=null,touchMoved=false;
 let includeQDRisk=false;
+let feedMode='briefing';
 let rootLock=null; // Set from ?root= URL param — locks navigation for shared views
 let isStale=false; // Track if latest data is from an earlier date than today
 
@@ -450,7 +460,11 @@ window.addEventListener('load',()=>{
   // Check for shared view (?root=Name)
   const urlParams=new URLSearchParams(window.location.search);
   const rootParam=urlParams.get('root');
-  if(rootParam){
+  if(urlParams.get('demo')==='1'){
+    rootLock=null;
+    document.getElementById('configBar').style.display='none';
+    loadDemoData();
+  } else if(rootParam){
     rootLock=decodeURIComponent(rootParam);
     setupSharedView();
   } else {
@@ -684,6 +698,37 @@ function useLatest(){
   isStale=currentData.date<today;
   
   if(rootLock)applyRootLock();else render();
+}
+
+function loadDemoData(){
+  const prev=[
+    {level:1,name:'Avery Bennett',title:'TL',closed:false,pc:13,uwId:1001,gc:225,services:70},
+    {level:2,name:'Morgan Lee',title:'D',closed:false,pc:1,uwId:1002,gc:4,services:2},
+    {level:2,name:'Jamie Rivera',title:'QD',closed:false,pc:6,uwId:1003,gc:22,services:9},
+    {level:3,name:'Taylor Kim',title:'D',closed:false,pc:2,uwId:1004,gc:4,services:2},
+    {level:2,name:'Casey Shah',title:'QD',closed:false,pc:5,uwId:1005,gc:19,services:8},
+    {level:3,name:'Riley Morgan',title:'D',closed:false,pc:1,uwId:1006,gc:3,services:1},
+    {level:2,name:'Jordan Ellis',title:'D',closed:false,pc:2,uwId:1007,gc:5,services:2},
+    {level:2,name:'Robin Vale',title:'STL/TL',closed:false,pc:12,uwId:1008,gc:210,services:65}
+  ];
+  const current=[
+    {level:1,name:'Avery Bennett',title:'TL',closed:false,pc:14,uwId:1001,gc:240,services:76},
+    {level:2,name:'Morgan Lee',title:'D',closed:false,pc:2,uwId:1002,gc:6,services:3},
+    {level:2,name:'Jamie Rivera',title:'QD',closed:false,pc:6,uwId:1003,gc:26,services:10},
+    {level:3,name:'Taylor Kim',title:'QD',closed:false,pc:3,uwId:1004,gc:8,services:4},
+    {level:2,name:'Casey Shah',title:'QD',closed:false,pc:5,uwId:1005,gc:21,services:9},
+    {level:3,name:'Riley Morgan',title:'D',closed:false,pc:2,uwId:1006,gc:5,services:2},
+    {level:2,name:'Jordan Ellis',title:'D',closed:false,pc:2,uwId:1007,gc:8,services:3},
+    {level:2,name:'Robin Vale',title:'STL/TL',closed:false,pc:12,uwId:1008,gc:218,services:68},
+    {level:2,name:'Alex Quinn',title:'D',closed:false,pc:1,uwId:1009,gc:2,services:1}
+  ];
+  allDates={'2026-11-02':prev,'2026-11-03':current};
+  populateDates(Object.keys(allDates).sort().reverse());
+  useLatest();
+  document.getElementById('emptyState').style.display='none';
+  const banner=document.createElement('div');
+  banner.className='intelligence-note';banner.textContent='DEMO DATA · synthetic names and metrics';
+  document.querySelector('.sb-header').appendChild(banner);
 }
 function applyComparison(){
   const d1=document.getElementById('dateSelect1').value;const d2=document.getElementById('dateSelect2').value;
@@ -1124,6 +1169,9 @@ function grw(p){
 // ══ FEED ══
 function buildFeed(){
   const feed=document.getElementById('feed');
+  updateFeedTabs();
+  if(feedMode==='activity'){buildActivityView(feed);return;}
+  if(feedMode==='promotions'){buildPromotionsView(feed);return;}
   let html='';
 
   // Use only visible partners (respects rootLock for shared views)
@@ -1294,6 +1342,9 @@ function buildFeed(){
           <strong>OOS:</strong> Hatched = out of status. Fill = title. Ring = status.
         </div>
       </div>
+      <div class="more-section" style="font-size:.65rem;color:var(--dim);line-height:1.5">
+        <strong style="color:var(--text)">PRISM Visualiser v${PRISM_RELEASE.version}</strong><br>${PRISM_RELEASE.whatsNew}
+      </div>
     </div>
   </div>`;
 
@@ -1312,6 +1363,44 @@ function buildFeed(){
       const ch=document.getElementById('chevron-'+id);if(ch)ch.classList.add('open');
     }
   });
+}
+
+function switchFeedMode(mode){
+  feedMode=mode;
+  buildFeed();
+}
+function updateFeedTabs(){
+  ['briefing','activity','promotions'].forEach(mode=>{
+    const el=document.getElementById(mode+'Tab');
+    if(el)el.classList.toggle('active',feedMode===mode);
+  });
+}
+function buildActivityView(feed){
+  if(!currentData){feed.innerHTML='<div class="intel-card">Load PRISM data to see activity.</div>';return;}
+  const partners=visiblePartners().filter(p=>!p.closed);
+  if(!compareData){feed.innerHTML='<div class="intelligence-note">Activity uses the selected snapshot comparison. Select a previous date in the date controls to review personal and structural changes.</div>';return;}
+  const rows=partners.map(p=>({p,signal:PRISMIntelligence.activityFor(p,currentData.partners,compareData.partners)}));
+  const personal=rows.filter(x=>x.signal.personallyActive).sort((a,b)=>((b.signal.personalCustomerDelta||0)+(b.signal.directRecruitments*2))-((a.signal.personalCustomerDelta||0)+(a.signal.directRecruitments*2)));
+  const structural=rows.filter(x=>x.signal.structuralChangeOnly).sort((a,b)=>Math.abs(b.signal.groupCustomerDelta||0)-Math.abs(a.signal.groupCustomerDelta||0));
+  const watched=rows.filter(x=>watchlist[x.p.name]);
+  const card=(x,extra='')=>`<div class="intel-card"><div class="intel-card-head"><strong style="cursor:pointer" onclick="navTo('${x.p.name}')">${sname(x.p)}</strong><span style="color:${x.signal.personallyActive?'var(--green)':'var(--dim)'}">${x.p.title}</span></div><div class="intel-gaps">${x.signal.personalCustomerDelta==null?'No baseline':`${x.signal.personalCustomerDelta>0?'+':''}${x.signal.personalCustomerDelta} personal customers`} · +${x.signal.directRecruitments} new direct Partners${x.signal.groupCustomerDelta==null?'':` · ${x.signal.groupCustomerDelta>0?'+':''}${x.signal.groupCustomerDelta} group customers`} · ${x.signal.serviceDelta==null?'':`${x.signal.serviceDelta>0?'+':''}${x.signal.serviceDelta} services`}</div>${extra}</div>`;
+  feed.innerHTML=`<div class="intelligence-note">Personal activity means own personal customer growth or a newly appearing open direct Partner. Group customer and service movement alone is shown separately because it may come from the wider structure.</div>${buildSection('🔥','Personal activity',personal.length,'personalactivity',personal.map(x=>card(x)).join(''))}${buildSection('📊','Structural movement only',structural.length,'structuralactivity',structural.map(x=>card(x,'<div class="intel-gaps">Source of change is not attributable from the extract.</div>')).join(''))}${buildSection('👁','Watchlist',watched.length,'activitywatch',watched.map(x=>`${card(x)}<div class="watch-actions" style="justify-content:flex-end;margin:0 .6rem .45rem"><button class="watch-btn hot" onclick="setWatch('${x.p.name}','hot')">🔥 Hot</button><button class="watch-btn cold" onclick="setWatch('${x.p.name}','cold')">❄️ Cold</button><button class="watch-btn" onclick="askRemoveWatch('${x.p.name}')">Remove</button></div>`).join(''))}<div class="intelligence-note">Watchlist labels and nicknames stay in this browser's local storage. Do not enter mentoring notes here; this public visualiser has no private notes store.</div>`;
+}
+function buildPromotionsView(feed){
+  if(!currentData){feed.innerHTML='<div class="intel-card">Load PRISM data to see promotion progress.</div>';return;}
+  const items=visiblePartners().filter(p=>!p.closed).map(p=>{
+    const status=(isOOS(p)?titleOnly(p):statusOnly(p)).toUpperCase();
+    const target=isOOS(p)?titleOnly(p).toUpperCase():(nextPositions(status)[0]||'');
+    const reqs=REQS[target]||[];
+    const evaluation=PRISMIntelligence.evaluatePromotion(currMetrics(p),target,reqs);
+    return {p,target,evaluation,isOOS:isOOS(p)};
+  }).filter(x=>x.target&&x.evaluation.requirements).sort((a,b)=>a.evaluation.gaps.length-b.evaluation.gaps.length||a.p.name.localeCompare(b.p.name));
+  const rows=items.map(x=>{
+    const gaps=x.evaluation.gaps.length?x.evaluation.gaps.map(g=>`${g.label}: ${g.current}/${g.required} (need ${g.missing})`).join(' · '):'All listed planning metrics are met';
+    const status=x.evaluation.estimateReady?'var(--green)':x.evaluation.gaps.length?'var(--amber)':'var(--dim)';
+    return `<div class="intel-card"><div class="intel-card-head"><strong style="cursor:pointer" onclick="navTo('${x.p.name}')">${sname(x.p)}</strong><span style="color:${status}">${x.isOOS?'Re-qualify':'Next estimate'}: ${x.target}</span></div><div class="intel-gaps">${gaps}</div><div class="intel-gaps" style="margin-top:.35rem">${x.evaluation.met}/${x.evaluation.requirements} listed metrics · planning estimate</div><div class="intel-gaps" style="margin-top:.25rem;color:var(--amber)">⚠ ${x.evaluation.warning}</div></div>`;
+  }).join('');
+  feed.innerHTML=`<div class="intelligence-note"><strong>Qualification rules require validation.</strong> The UW promotion planners were not available during this build. The figures below use the existing PRISM thresholds and descendant leg counts as planning estimates; they are not authoritative UW qualification decisions. QD★/SQD recruitment eligibility cannot be verified from this extract.</div>${buildSection('🎯','Promotion planning estimates',items.length,'promotionestimates',rows)}`;
 }
 
 function buildSection(em,label,count,id,inner){
@@ -1789,10 +1878,22 @@ function statusOnly(p){const pts=p.title.split('/');return pts.length>1?pts[1].t
 function dname(p){const n=nicknames[p.name];if(n)return n;const pts=p.name.split(' ');return pts.length>=2?`${pts[0]} ${pts[pts.length-1]}`:pts[0];}
 function sname(p){return nicknames[p.name]||p.name.split(' ')[0];}
 
-// Stub functions for feeds (not yet implemented in this version)
-function searchPartners(val){}
+function searchPartners(val){
+  const box=document.getElementById('searchResults');if(!box||!currentData)return;
+  const query=String(val||'').trim().toLowerCase();
+  if(!query){box.innerHTML='';return;}
+  const matches=visiblePartners().filter(p=>p.name.toLowerCase().includes(query)||String(nicknames[p.name]||'').toLowerCase().includes(query)).slice(0,8);
+  box.innerHTML=matches.map(p=>`<div class="search-result" onclick="navTo('${p.name}')">${sname(p)} <span style="color:var(--dim)">· ${p.title}</span></div>`).join('')||'<div class="search-result" style="color:var(--dim)">No matching Partner</div>';
+}
 function applyVisibility(){render();}
-function showHiddenList(){}
+function showHiddenList(){
+  const list=document.getElementById('hiddenList');if(!list||!currentData)return;
+  const hidden=currentData.partners.filter(p=>hiddenSession.has(p.name)||hiddenPerm[p.name]);
+  if(list.style.display!=='none'&&list.style.display){list.style.display='none';return;}
+  list.style.display='block';
+  list.innerHTML=hidden.map(p=>`<div class="search-result" onclick="restoreHidden('${p.name}')">${sname(p)} <span style="color:var(--blue)">· Restore</span></div>`).join('')||'<div class="search-result" style="color:var(--dim)">No hidden Partners</div>';
+}
+function restoreHidden(name){hiddenSession.delete(name);delete hiddenPerm[name];saveLocal();render();showHiddenList();}
 function toggleRules(){const b=document.getElementById('rulesBody');b.style.display=b.style.display==='none'?'block':'none';document.getElementById('rulesBtn').textContent=(b.style.display==='none'?'▼ Show':'▲ Hide');}
 function setWatch(name,type){watchlist[name]=type;saveLocal();buildFeed();draw();}
 function askRemoveWatch(name){document.getElementById('removeWatchName').textContent=name;document.getElementById('removeWatchModal').classList.add('show');pendingRemoveWatch=name;}
