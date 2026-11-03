@@ -1,14 +1,9 @@
 # Changelog
 
-## 1.0.1 - 2026-10-02
+## 1.1.0 - 2026-11-03
 
-- Compressed the UW login-state secret export for safer GitHub Actions setup.
-- Removed unnecessary IndexedDB export to reduce secret size.
-
-## 1.0.0 - 2026-10-02
-
-- Moved PRISM daily collection from the local-laptop proof of concept to GitHub Actions cloud automation.
-- Added scheduled UK-local checks at 08:07, 10:07, 12:07, 14:07 and 16:07.
-- Added secure UW session-state loading through a GitHub Actions secret.
-- Added safe stale-data retries and final stale/login alert handling.
-- Kept the verified Apps Script write and daily change-report email workflow.
+- Add dedicated activity and promotion planning views to the Visualiser.
+- Distinguish personal activity from group movement that cannot be attributed from the data extract.
+- Persist manageable hot/cold watchlist labels locally and complete Partner search and hidden-partner restoration.
+- Add a synthetic interactive demo mode and explain the limits of activity and qualification estimates.
+- Preserve snapshot import, historical comparisons, structure views, and existing reporting.

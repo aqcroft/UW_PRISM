@@ -1,0 +1,31 @@
+name: PRISM - Validate visualiser
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check JavaScript syntax and tests
+        run: |
+          node --check intelligence.js
+          node --check version.js
+          node --test tests/*.test.js
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const html = fs.readFileSync('visualiser.html', 'utf8');
+          const inline = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)];
+          if (!inline.length) throw new Error('No inline visualiser script found');
+          inline.forEach((script, index) => new vm.Script(script[1], { filename: `visualiser-inline-${index}.js` }));
+          console.log('Visualiser inline JavaScript syntax passed.');
+          NODE
